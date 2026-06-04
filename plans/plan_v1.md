@@ -344,6 +344,141 @@ Detalles absorbidos del diseño de Sebastián:
 
 ---
 
+## Frontend — Sistema de Diseño (TailAdmin Pro + Tailwind)
+
+### Paleta de Colores (Healthcare / Accessible & Ethical)
+
+| Rol           | Color          | Hex       |
+| ------------- | -------------- | --------- |
+| Primary       | Teal médico    | `#0891B2` |
+| Secondary     | Teal claro     | `#22D3EE` |
+| CTA / Success | Verde salud    | `#22C55E` |
+| Background    | Menta suave    | `#F0FDFA` |
+| Text          | Verde oscuro   | `#134E4A` |
+| Error         | Rojo accesible | `#DC2626` |
+| Warning       | Ámbar          | `#D97706` |
+
+Extender en `tailwind.config.ts` como `colors.brand.*` para uso consistente en todo el proyecto.
+
+### Tipografía
+
+- **Headings:** Figtree (300–700) — limpia, médica, confiable
+- **Body:** Noto Sans (300–700) — máxima legibilidad, accesible
+- Tamaño mínimo body: 16px. Line-height: 1.5–1.75
+- Google Fonts importado en `admin/src/app/layout.tsx`
+
+### Estilo Base
+
+- WCAG AAA compliant (contraste 4.5:1 mínimo en texto normal)
+- Focus rings visibles de 3px en todos los interactivos
+- Touch targets mínimo 44×44px
+- Sin emojis como iconos → usar Heroicons / Lucide
+- Sin animaciones agresivas → `prefers-reduced-motion` respetado
+- Transiciones: 150–300ms en micro-interacciones
+
+### Páginas y Componentes Clave
+
+```
+admin/src/app/
+├── (auth)/
+│   └── login/page.tsx          ← pantalla de login, sin sidebar
+├── (dashboard)/
+│   ├── layout.tsx              ← sidebar + navbar de TailAdmin
+│   ├── page.tsx                ← dashboard principal (por rol)
+│   ├── residents/
+│   │   ├── page.tsx            ← lista/búsqueda de residentes
+│   │   ├── new/page.tsx        ← nuevo residente
+│   │   └── [id]/
+│   │       ├── page.tsx        ← perfil del residente
+│   │       └── admissions/
+│   │           ├── new/page.tsx         ← nueva admisión (multi-step)
+│   │           └── [admissionId]/
+│   │               ├── page.tsx         ← resumen de admisión
+│   │               ├── consents/        ← consentimientos
+│   │               ├── medical/         ← sección médica
+│   │               ├── therapeutic/     ← área terapéutica
+│   │               ├── social-work/
+│   │               ├── psychology/
+│   │               ├── occupational-therapy/
+│   │               ├── treatment-plan/
+│   │               ├── exit-passes/
+│   │               └── daily-logs/
+│   ├── consultations/page.tsx  ← agenda de citas
+│   ├── reports/page.tsx        ← reportes básicos
+│   └── admin/
+│       ├── users/page.tsx
+│       └── professionals/page.tsx
+```
+
+### UX Patterns para Personal Clínico
+
+- **Multi-step admission form:** barra de progreso "Paso 2 de 6", botones Anterior/Siguiente, auto-save por paso
+- **Indicadores de estado del expediente:** checklist visual en el perfil de admisión (qué secciones están completas)
+- **Formularios:** siempre `<label>` explícito, nunca solo placeholder; errores con `role="alert"` + ícono + texto
+- **Botones de submit:** estado loading (spinner + disable) durante operaciones async
+- **Consentimientos:** tabla con badge de estado (Pendiente / Firmado + fecha)
+- **Dashboard por rol:** cada rol ve solo lo relevante a su área
+
+---
+
+## Autenticación — Arquitectura Completa
+
+### Flujo JWT
+
+```
+1. POST /api/v1/auth/login  →  { access_token, token_type }
+2. Token guardado en httpOnly cookie (NO localStorage — seguridad)
+3. Cada request incluye cookie automáticamente
+4. Backend valida token en dep get_current_user
+5. Refresh: POST /api/v1/auth/refresh antes de expirar
+```
+
+### Next.js — Protección de Rutas (middleware.ts)
+
+```
+middleware.ts (raíz de admin/)
+  ├── Lee token de cookie
+  ├── Si no existe → redirect a /login
+  ├── Decodifica payload (role)
+  ├── Si role no tiene acceso a la ruta → redirect a /unauthorized
+  └── Pasa token en header X-User-Role al backend
+
+Matriz de acceso por ruta:
+  /dashboard/admin/*           → solo admin
+  /dashboard/residents/*/medical/*  → admin, medical, counselor
+  /dashboard/residents/*/therapeutic/* → admin, counselor, therapist
+  /dashboard/residents/*/social-work/* → admin, social_worker
+  /dashboard/residents/*/psychology/* → admin, psychologist
+  /dashboard/residents/*/occupational-therapy/* → admin, occupational_therapist
+  /dashboard/residents/* (lectura) → todos los roles
+```
+
+### FastAPI — Seguridad
+
+```python
+# backend/app/core/security.py
+- bcrypt para hashing de contraseñas (passlib)
+- JWT con python-jose: HS256, exp en payload
+- ACCESS_TOKEN_EXPIRE: configurable en .env (default 8h turno clínico)
+
+# backend/app/core/deps.py
+- get_current_user: extrae y valida JWT del header Authorization
+- role_required(roles): decorador/dep que verifica rol del usuario
+- get_db: inyecta sesión de DB con context manager
+
+# Audit log automático:
+- Middleware FastAPI intercepta POST/PUT/DELETE
+- Escribe en audit_logs: user_id, operation, table, record_id, timestamp
+```
+
+### Cookies httpOnly (seguridad)
+
+- El endpoint `/auth/login` setea `Set-Cookie: access_token=...; HttpOnly; SameSite=Lax; Secure`
+- El frontend **nunca** accede al token directamente
+- El logout limpia la cookie en el servidor
+
+---
+
 ## Variables de Entorno (.env.example)
 
 ```
@@ -364,9 +499,13 @@ NEXT_PUBLIC_API_URL=http://localhost:8000/api/v1
 
 ## Verificación del Backbone
 
-1. `make install` sin errores
+1. `make setup` sin errores (venv + npm install)
 2. `make dev` levanta ambos servidores (`:3000` frontend, `:8000` backend)
-3. `GET http://localhost:8000/docs` muestra Swagger con todos los routers
-4. `GET http://localhost:3000` muestra TailAdmin con pantalla de login
-5. `make db-migrate` crea todas las tablas en PostgreSQL sin errores
-6. `POST /api/v1/auth/login` con credenciales seed retorna JWT válido
+3. `make db-migrate` crea las 22 tablas en PostgreSQL sin errores
+4. `make seed` crea usuario admin inicial y áreas de tratamiento
+5. `GET http://localhost:8000/docs` muestra Swagger con todos los routers organizados por módulo
+6. `GET http://localhost:3000` redirige a `/login` (middleware activo)
+7. Login con credenciales del seed → cookie httpOnly seteada → redirect a dashboard
+8. Intentar acceder a `/admin/users` con rol `counselor` → redirect a `/unauthorized`
+9. `POST /api/v1/auth/login` con credenciales incorrectas → 401 con mensaje claro
+10. Revisar `audit_logs` en DB después de crear un residente → registro automático presente
