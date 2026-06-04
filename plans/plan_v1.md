@@ -135,7 +135,7 @@ id, resident_id, level (primary/secondary/other), academic_grade, year_attended,
 
 ### `admissions`
 
-id, resident_id, admission_number, admission_type (first/readmission), admission_date, discharge_date, discharge_reason, assigned_counselor_id, status (intake_pending / consents_pending / assessment_in_progress / treatment_active / discharged / abandoned), referral_source, sponsor_name, sponsor_relationship, sponsor_phone, sponsor_address, judicial_status, has_support_network, created_at, updated_at
+id, resident_id, admission_number, admission_type (first/readmission), admission_date, discharge_date, discharge_reason, assigned_counselor_id, status (intake_pending / consents_pending / assessment_in_progress / treatment_active / discharged / abandoned), referral_source, admission_condition, initial_diagnosis, sponsor_name, sponsor_relationship, sponsor_phone, sponsor_address, judicial_status, has_support_network, created_at, updated_at
 
 ### `economic_situations` (snapshot por admisión)
 
@@ -167,7 +167,7 @@ id, medical_record_id, test_date, result, notes, file_id
 
 ### `medication_logs`
 
-id, medical_record_id, medication_name, dosage, frequency, prescribed_by, start_date, end_date, notes
+id, medical_record_id, treatment_type (internal/external), medication_name, dosage, frequency, prescribed_by, start_date, end_date, notes
 
 ### `therapeutic_assessments`
 
@@ -199,7 +199,7 @@ id, admission_id, requested_at, approved_by_id, departure_date, return_date_expe
 
 ### `daily_logs`
 
-id, admission_id, logged_by_id, log_date, intervention_type, notes
+id, admission_id, logged_by_id, log_date, intervention_type, notes, recommendations
 
 ### `family_therapy_sessions`
 
@@ -212,6 +212,30 @@ id, admission_id, abandoned_at, reason, notes, staff_notified_id
 ### `complaints`
 
 id, admission_id, reported_at, description, resolution, resolved_at, resolved_by_id
+
+### `treatment_areas` ← configurable, no hardcodeada
+
+id, name (medicine/therapeutic/social_work/psychology/occupational_therapy), description
+
+### `professionals`
+
+id, user_id, area_id, first_name, last_name, specialty, is_active
+
+### `relatives` ← entidad de primer nivel con perfil completo
+
+id, id_number, first_name, last_name, birthdate, marital_status, address, judicial_situation, phone, education_level
+
+### `patient_relatives` ← tabla puente
+
+id, resident_id, relative_id, relationship
+
+### `consultations` ← citas de seguimiento por área
+
+id, admission_id, professional_id, area_id, consultation_type, description, observations, next_appointment_date, consultation_date
+
+### `audit_logs` ← trazabilidad para cumplimiento IAFA
+
+id, user_id, operation_type (CREATE/UPDATE/DELETE), table_affected, record_id, timestamp
 
 ### `users`
 
@@ -274,10 +298,49 @@ POST   /api/v1/admissions/{id}/daily-logs
 POST   /api/v1/files/upload-url  (genera presigned URL de S3)
 GET    /api/v1/files/{id}
 
+GET    /api/v1/admissions/{id}/consultations
+POST   /api/v1/admissions/{id}/consultations
+PUT    /api/v1/consultations/{id}
+
+GET    /api/v1/residents/{id}/relatives
+POST   /api/v1/residents/{id}/relatives
+PUT    /api/v1/relatives/{id}
+
+GET    /api/v1/reports/admissions          (reporte de ingresos)
+GET    /api/v1/reports/consultations       (reporte de citas)
+GET    /api/v1/reports/treatment-progress  (evolución de pacientes)
+
 GET    /api/v1/users             (admin only)
 POST   /api/v1/users
 PUT    /api/v1/users/{id}
+
+GET    /api/v1/professionals     (admin only)
+POST   /api/v1/professionals
+PUT    /api/v1/professionals/{id}
 ```
+
+---
+
+## Hallazgos de initial_docs — Lo que cambió en el plan
+
+De la imagen del diagrama de base de datos (Sistema Canaán) y el Acta de Constitución (SIGP):
+
+| Módulo faltante                          | Fuente                     | Impacto en plan                           |
+| ---------------------------------------- | -------------------------- | ----------------------------------------- |
+| `consultations` (citas/seguimiento)      | Acta + Diagrama `Consulta` | Nueva tabla + endpoints                   |
+| `audit_logs`                             | Diagrama `Auditoria`       | Nueva tabla, se auto-llena via middleware |
+| `treatment_areas` configurable           | Diagrama `AreaTratamiento` | Tabla en lugar de enum hardcodeado        |
+| `professionals` (perfil del profesional) | Diagrama `Profesional`     | Separado de `users`                       |
+| `relatives` como entidad completa        | Diagrama `Familiar`        | Propia tabla con perfil completo          |
+| Reportes básicos                         | Acta entregables           | 3 endpoints de reporting                  |
+
+El diagrama también sugería un patrón `EventoClinico` como eje central. Se descartó en favor del enfoque `admission`-céntrico (más simple, mismo resultado para el alcance de este proyecto).
+
+Detalles absorbidos del diseño de Sebastián:
+
+- `admission_condition` + `initial_diagnosis` → en `admissions`
+- `recommendations` → en `daily_logs`
+- `treatment_type` (internal/external) → en `medication_logs`
 
 ---
 
