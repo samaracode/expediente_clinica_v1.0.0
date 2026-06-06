@@ -1,33 +1,41 @@
 .PHONY: setup setup-admin setup-backend dev dev-backend dev-admin db-migrate db-revision db-reset seed
 
+# Cross-platform: detecta Windows vs Unix
+ifeq ($(OS),Windows_NT)
+    PYTHON   = venv\Scripts\python
+    ALEMBIC  = venv\Scripts\alembic
+    UVICORN  = venv\Scripts\uvicorn
+    PY_SETUP = py
+else
+    PYTHON   = venv/bin/python
+    ALEMBIC  = venv/bin/alembic
+    UVICORN  = venv/bin/uvicorn
+    PY_SETUP = python3
+endif
+
 setup:
-	py scripts/setup_project.py
+	$(PY_SETUP) scripts/setup_project.py
 
 setup-admin:
-	py scripts/setup_project.py --only-admin
+	$(PY_SETUP) scripts/setup_project.py --only-admin
 
 setup-backend:
-	py scripts/setup_project.py --only-backend
+	$(PY_SETUP) scripts/setup_project.py --only-backend
 
 dev-backend:
-	cd backend && venv\Scripts\python -m uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
+	cd backend && $(UVICORN) app.main:app --reload --host 127.0.0.1 --port 8000
 
 dev-admin:
 	cd admin && npm run dev
 
 dev:
-	@echo "Para iniciar ambos servicios en Windows, se recomienda abrir dos terminales o usar 'npm run dev' si se configura un script concurrently."
-	@echo "Iniciando backend en esta terminal..."
-	$(MAKE) dev-backend
+	@echo "Abre dos terminales y corre 'make dev-backend' y 'make dev-admin' por separado."
 
 db-migrate:
-	cd backend && venv\Scripts\alembic upgrade head
+	cd backend && $(ALEMBIC) upgrade head
 
 db-revision:
-	cd backend && venv\Scripts\alembic revision --autogenerate -m "$(msg)"
+	cd backend && $(ALEMBIC) revision --autogenerate -m "$(msg)"
 
 db-reset:
-	@echo "Restableciendo la base de datos..."
-	cd backend && venv\Scripts\py -c "import sys; print('¿Está seguro de borrar la base de datos de desarrollo? (s/n)'); ans = sys.stdin.readline().strip(); sys.exit(0 if ans.lower() == 's' else 1)"
-	cd backend && venv\Scripts\py -m app.db.reset_db
-
+	cd backend && $(PYTHON) -m app.db.reset_db
