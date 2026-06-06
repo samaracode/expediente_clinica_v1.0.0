@@ -23,7 +23,7 @@ setup-backend:
 	$(PY_SETUP) scripts/setup_project.py --only-backend
 
 dev-backend:
-	cd backend && $(UVICORN) app.main:app --reload --host 127.0.0.1 --port 8000
+	cd backend && $(UVICORN) app.main:app --reload --host 127.0.0.1 --port 8005
 
 dev-admin:
 	cd admin && npm run dev
