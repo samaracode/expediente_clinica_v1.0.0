@@ -35,6 +35,13 @@ type NavItem = {
 
 const navItems: NavItem[] = [
   {
+    icon: <UserCircleIcon />,
+    name: "Clínica",
+    subItems: [
+      { name: "Residentes", path: "/residents" },
+    ],
+  },
+  {
     icon: <GridIcon />,
     name: "Dashboard",
     subItems: [

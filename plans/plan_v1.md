@@ -497,15 +497,83 @@ NEXT_PUBLIC_API_URL=http://localhost:8000/api/v1
 
 ---
 
-## Verificación del Backbone
+## Fases de Implementación
 
-1. `make setup` sin errores (venv + npm install)
-2. `make dev` levanta ambos servidores (`:3000` frontend, `:8000` backend)
-3. `make db-migrate` crea las 22 tablas en PostgreSQL sin errores
-4. `make seed` crea usuario admin inicial y áreas de tratamiento
-5. `GET http://localhost:8000/docs` muestra Swagger con todos los routers organizados por módulo
-6. `GET http://localhost:3000` redirige a `/login` (middleware activo)
-7. Login con credenciales del seed → cookie httpOnly seteada → redirect a dashboard
-8. Intentar acceder a `/admin/users` con rol `counselor` → redirect a `/unauthorized`
-9. `POST /api/v1/auth/login` con credenciales incorrectas → 401 con mensaje claro
-10. Revisar `audit_logs` en DB después de crear un residente → registro automático presente
+### Fase 1 — Modelos de BD, Migración y Seed
+
+Crear `backend/app/models/` con 10 archivos (uno por dominio), actualizar `db/base.py` para importarlos todos, generar migración real con `alembic revision --autogenerate`, y crear `backend/app/db/seed.py`.
+
+El seed crea:
+- Usuario admin: `admin@zoe.clinica` / `Admin1234!`
+- 5 `TreatmentArea`: medicine, therapeutic, social_work, psychology, occupational_therapy
+
+Agregar target `seed` al Makefile:
+```makefile
+seed:
+    cd backend && $(PYTHON) -m app.db.seed
+```
+
+### Fase 2 — Autenticación (Backend + Frontend)
+
+**Backend:**
+- `backend/app/schemas/user.py` — `UserLogin`, `Token`, `UserOut`
+- `backend/app/api/v1/auth.py`:
+  - `POST /api/v1/auth/login` → valida credenciales, JWT en httpOnly cookie + body
+  - `POST /api/v1/auth/logout` → limpia la cookie
+  - `GET  /api/v1/auth/me` → usuario actual autenticado
+- Actualizar `deps.py` para consultar `User` real en BD (reemplaza mock)
+- `backend/app/api/v1/router.py` + registrar en `main.py`
+
+**Frontend:**
+- `admin/src/lib/api.ts` — fetch wrapper con `credentials: "include"` (cookie automática)
+- `admin/src/types/index.ts` — tipos TypeScript espejo de los schemas Pydantic
+- `admin/src/context/AuthContext.tsx` — estado `user`, funciones `login()` y `logout()`
+- Adaptar signin page existente para llamar a `AuthContext.login()`
+- `admin/src/middleware.ts` — protege rutas `/(admin)/`, redirige a `/signin` si no hay cookie
+- Agregar `<AuthProvider>` en `admin/src/app/layout.tsx`
+
+### Fase 3 — Residentes y Admisiones (Backend + Frontend)
+
+**Backend:**
+- `backend/app/schemas/resident.py` — `ResidentCreate`, `ResidentUpdate`, `ResidentOut`, `ResidentList`
+- `backend/app/schemas/admission.py` — `AdmissionCreate`, `AdmissionOut`
+- `backend/app/api/v1/residents.py`:
+  - `GET  /api/v1/residents` — lista paginada, búsqueda por nombre/cédula
+  - `POST /api/v1/residents` — crear residente
+  - `GET  /api/v1/residents/{id}` — perfil completo
+  - `PUT  /api/v1/residents/{id}` — actualizar datos demográficos
+  - `GET  /api/v1/residents/{id}/admissions` — historial
+- `backend/app/api/v1/admissions.py`:
+  - `POST /api/v1/admissions` — crear admisión (status: `intake_pending`)
+  - `GET  /api/v1/admissions/{id}` — detalle
+  - `PUT  /api/v1/admissions/{id}/status` — avanzar en el flujo
+
+**Frontend:**
+- Nuevas rutas bajo `admin/src/app/(admin)/`:
+  - `residents/page.tsx` — tabla de residentes (reutiliza `DataTableTwo`)
+  - `residents/new/page.tsx` — formulario nuevo residente
+  - `residents/[id]/page.tsx` — perfil + lista de admisiones
+  - `residents/[id]/admissions/new/page.tsx` — nueva admisión
+- Componentes en `admin/src/components/residents/`:
+  - `ResidentTable.tsx`, `ResidentForm.tsx`, `AdmissionForm.tsx`, `AdmissionStatusBadge.tsx`
+- Agregar sección "Clínica" con Residentes en la navegación del sidebar
+
+---
+
+## Verificación del Sistema (Fases 1–3)
+
+```bash
+make db-migrate         # 22+ tablas creadas sin errores
+make seed               # "Admin creado" + "5 áreas creadas"
+make dev-backend        # /docs muestra módulos Auth + Residents + Admissions
+make dev-admin          # localhost:3000 → redirect a /signin
+```
+
+Smoke test en browser:
+1. Login con `admin@zoe.clinica` / `Admin1234!` → redirige al dashboard
+2. Navegar a `/residents` → tabla vacía visible
+3. Crear nuevo residente → aparece en la tabla
+4. Crear admisión para ese residente → status `intake_pending`
+5. Login con credenciales incorrectas → error 401 visible
+6. `POST /api/v1/auth/login` correcto → cookie `access_token` seteada como httpOnly
+7. Revisar `audit_logs` en DB después de crear un residente → registro automático presente

@@ -39,3 +39,6 @@ db-revision:
 
 db-reset:
 	cd backend && $(PYTHON) -m app.db.reset_db
+
+seed:
+	cd backend && $(PYTHON) -m app.db.seed

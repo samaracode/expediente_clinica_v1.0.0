@@ -1,15 +1,16 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
+import app.db.base  # noqa: F401 — registers all ORM models with SQLAlchemy mapper
+from app.api.v1.router import api_router
 
 app = FastAPI(
     title="Expediente Clínico ZOE - API",
     openapi_url=f"{settings.API_V1_STR}/openapi.json",
     docs_url="/docs",
-    redoc_url="/redoc"
+    redoc_url="/redoc",
 )
 
-# Configurar CORS para permitir comunicación desde el Frontend (Next.js en el puerto 3000)
 origins = [
     "http://localhost:3000",
     "http://127.0.0.1:3000",
@@ -23,15 +24,13 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+app.include_router(api_router, prefix=settings.API_V1_STR)
+
+
 @app.get("/api/v1/health", tags=["Health"])
 def health_check():
-    """
-    Endpoint simple para verificar el estado de la API.
-    """
-    return {
-        "status": "healthy",
-        "message": "Expediente Clínico ZOE API is running"
-    }
+    return {"status": "healthy", "message": "Expediente Clínico ZOE API is running"}
+
 
 if __name__ == "__main__":
     import uvicorn
