@@ -135,6 +135,23 @@ export interface PersonalItemsInventoryOut {
   notes: string | null;
 }
 
+export interface EconomicSituationOut {
+  id: number | null;
+  admission_id: number;
+  has_worked: boolean | null;
+  current_job: string | null;
+  work_phone: string | null;
+  workplace: string | null;
+  job_title: string | null;
+  tenure_months: number | null;
+  monthly_income_colones: number | null;
+  house_type: string | null;
+  rent_amount: number | null;
+  family_income_notes: string | null;
+  financial_assistance_notes: string | null;
+  household_members: string[];
+}
+
 export interface AdmissionCreate {
   resident_id: number;
   admission_type?: AdmissionType;
