@@ -11,6 +11,7 @@ from app.api.v1 import (
     social_work,
     psychology,
     occupational_therapy,
+    treatment,
 )
 
 api_router = APIRouter()
@@ -25,3 +26,4 @@ api_router.include_router(therapeutic.router, prefix="/admissions", tags=["Thera
 api_router.include_router(social_work.router, prefix="/admissions", tags=["Social Work"])
 api_router.include_router(psychology.router, prefix="/admissions", tags=["Psychology"])
 api_router.include_router(occupational_therapy.router, prefix="/admissions", tags=["Occupational Therapy"])
+api_router.include_router(treatment.router, prefix="/admissions", tags=["Treatment Plan"])

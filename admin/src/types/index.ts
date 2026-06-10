@@ -228,6 +228,29 @@ export interface OccupationalTherapyAssessmentOut {
   completion_status: string;
 }
 
+export interface TreatmentStageOut {
+  id: number | null;
+  stage_name: string;
+  stage_order: number;
+  start_date: string | null;
+  end_date: string | null;
+  progress_notes: string | null;
+  extension_consent_signed: boolean;
+  advancement_criteria: string | null;
+  status: string;
+}
+
+export interface TreatmentPlanOut {
+  id: number | null;
+  admission_id: number;
+  recommendations: string | null;
+  plan_details: string | null;
+  life_project: string | null;
+  created_at: string | null;
+  updated_at: string | null;
+  stages: TreatmentStageOut[];
+}
+
 export interface AdmissionCreate {
   resident_id: number;
   admission_type?: AdmissionType;
