@@ -26,7 +26,7 @@ def login(credentials: UserLogin, response: Response, db: Session = Depends(get_
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Usuario inactivo",
         )
-    token = create_access_token(subject=user.id)
+    token = create_access_token(subject=user.id, role=user.role.value)
     response.set_cookie(
         key=COOKIE_NAME,
         value=token,
