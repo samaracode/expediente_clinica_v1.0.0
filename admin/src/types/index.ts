@@ -228,6 +228,31 @@ export interface OccupationalTherapyAssessmentOut {
   completion_status: string;
 }
 
+export interface ExitPassOut {
+  id: number;
+  admission_id: number;
+  requested_at: string | null;
+  approved_by_id: number | null;
+  departure_date: string | null;
+  return_date_expected: string | null;
+  return_date_actual: string | null;
+  reason: string | null;
+  narrative: string | null;
+  companion: string | null;
+  pass_type: string;
+  status: string;
+}
+
+export interface DailyLogOut {
+  id: number;
+  admission_id: number;
+  logged_by_id: number | null;
+  log_date: string;
+  intervention_type: string | null;
+  notes: string | null;
+  recommendations: string | null;
+}
+
 export interface TreatmentStageOut {
   id: number | null;
   stage_name: string;

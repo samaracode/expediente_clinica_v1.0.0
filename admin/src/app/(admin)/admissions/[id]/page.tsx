@@ -18,8 +18,8 @@ const SECTIONS: Array<{ key: string; label: string; href: (id: string) => string
   { key: "psychology", label: "Psicología", href: (id) => `/admissions/${id}/psychology`, active: true },
   { key: "occupational_therapy", label: "Terapia ocupacional", href: (id) => `/admissions/${id}/occupational-therapy`, active: true },
   { key: "treatment_plan", label: "Plan de tratamiento", href: (id) => `/admissions/${id}/treatment-plan`, active: true },
-  { key: "exit_passes", label: "Permisos de salida", href: () => "#", active: false },
-  { key: "daily_logs", label: "Notas diarias", href: () => "#", active: false },
+  { key: "exit_passes", label: "Permisos de salida", href: (id) => `/admissions/${id}/exit-passes`, active: true },
+  { key: "daily_logs", label: "Notas diarias", href: (id) => `/admissions/${id}/daily-logs`, active: true },
 ];
 
 const STATUS_LABELS: Record<string, string> = {
