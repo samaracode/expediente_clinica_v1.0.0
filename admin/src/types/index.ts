@@ -152,6 +152,82 @@ export interface EconomicSituationOut {
   household_members: string[];
 }
 
+export interface DrugTestItem {
+  id: number | null;
+  test_date: string;
+  result: string | null;
+  notes: string | null;
+}
+
+export interface MedicationLogItem {
+  id: number | null;
+  treatment_type: string | null;
+  medication_name: string;
+  dosage: string | null;
+  frequency: string | null;
+  prescribed_by: string | null;
+  start_date: string | null;
+  end_date: string | null;
+  notes: string | null;
+}
+
+export interface MedicalRecordOut {
+  id: number | null;
+  admission_id: number;
+  social_security_validated: boolean;
+  iafa_icd_notes: string | null;
+  completion_status: string;
+  drug_tests: DrugTestItem[];
+  medication_logs: MedicationLogItem[];
+}
+
+export interface TherapeuticAssessmentOut {
+  id: number | null;
+  admission_id: number;
+  assessor_id: number | null;
+  assessment_date: string | null;
+  initial_summary: string | null;
+  clinical_history_summary: string | null;
+  europal_si_notes: string | null;
+  socrates_notes: string | null;
+  urica_notes: string | null;
+  afc_analysis_notes: string | null;
+  relapse_prevention_interview: string | null;
+  relapse_prevention_plan: string | null;
+  completion_status: string;
+}
+
+export interface SocialWorkAssessmentOut {
+  id: number | null;
+  admission_id: number;
+  social_worker_id: number | null;
+  assessment_date: string | null;
+  diagnostic_impression: string | null;
+  initial_assessment: string | null;
+  completion_status: string;
+}
+
+export interface PsychologyAssessmentOut {
+  id: number | null;
+  admission_id: number;
+  psychologist_id: number | null;
+  assessment_date: string | null;
+  initial_diagnostic_impression: string | null;
+  observable_assessment: string | null;
+  diagnostic_tests_notes: string | null;
+  completion_status: string;
+}
+
+export interface OccupationalTherapyAssessmentOut {
+  id: number | null;
+  admission_id: number;
+  therapist_id: number | null;
+  assessment_date: string | null;
+  initial_diagnostic_impression: string | null;
+  occupational_profile: string | null;
+  completion_status: string;
+}
+
 export interface AdmissionCreate {
   resident_id: number;
   admission_type?: AdmissionType;
