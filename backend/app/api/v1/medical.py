@@ -2,7 +2,7 @@ from datetime import date
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
-from app.core.deps import get_current_user
+from app.core.deps import get_current_user, RoleRequired
 from app.db.session import get_db
 from app.models.admission import Admission
 from app.models.medical import DrugTest, MedicationLog, MedicalRecord
@@ -15,6 +15,7 @@ from app.schemas.medical import (
 )
 
 router = APIRouter()
+_role = RoleRequired(["admin", "medical", "counselor"])
 
 
 def _build_out(record: MedicalRecord) -> MedicalRecordOut:
@@ -56,7 +57,7 @@ def _build_out(record: MedicalRecord) -> MedicalRecordOut:
 def get_medical(
     admission_id: int,
     db: Session = Depends(get_db),
-    _: User = Depends(get_current_user),
+    _: User = Depends(_role),
 ):
     if not db.query(Admission).filter(Admission.id == admission_id).first():
         raise HTTPException(status_code=404, detail="Admisión no encontrada")
@@ -72,7 +73,7 @@ def upsert_medical(
     admission_id: int,
     data: MedicalRecordUpsert,
     db: Session = Depends(get_db),
-    _: User = Depends(get_current_user),
+    _: User = Depends(_role),
 ):
     if not db.query(Admission).filter(Admission.id == admission_id).first():
         raise HTTPException(status_code=404, detail="Admisión no encontrada")

@@ -4,6 +4,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useSidebar } from "../context/SidebarContext";
+import { useAuth } from "../context/AuthContext";
 import {
   AiIcon,
   BoxCubeIcon,
@@ -240,6 +241,13 @@ const supportItems: NavItem[] = [
 const AppSidebar: React.FC = () => {
   const { isExpanded, isMobileOpen, isHovered, setIsHovered } = useSidebar();
   const pathname = usePathname();
+  const { user } = useAuth();
+  const isAdmin = user?.role === "admin";
+
+  const visibleNavItems = navItems.filter((item) => {
+    if (item.name === "Administración") return isAdmin;
+    return true;
+  });
 
   const renderMenuItems = (
     navItems: NavItem[],
@@ -398,7 +406,7 @@ const AppSidebar: React.FC = () => {
     ["main", "support", "others"].forEach((menuType) => {
       const items =
         menuType === "main"
-          ? navItems
+          ? visibleNavItems
           : menuType === "support"
           ? supportItems
           : othersItems;
@@ -517,7 +525,7 @@ const AppSidebar: React.FC = () => {
                   <HorizontaLDots />
                 )}
               </h2>
-              {renderMenuItems(navItems, "main")}
+              {renderMenuItems(visibleNavItems, "main")}
             </div>
             <div>
               <h2

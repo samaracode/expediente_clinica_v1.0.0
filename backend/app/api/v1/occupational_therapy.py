@@ -2,7 +2,7 @@ from datetime import date
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
-from app.core.deps import get_current_user
+from app.core.deps import get_current_user, RoleRequired
 from app.db.session import get_db
 from app.models.admission import Admission
 from app.models.assessment import OccupationalTherapyAssessment
@@ -13,6 +13,7 @@ from app.schemas.occupational_therapy import (
 )
 
 router = APIRouter()
+_role = RoleRequired(["admin", "occupational_therapist"])
 
 
 def _build_out(record: OccupationalTherapyAssessment) -> OccupationalTherapyAssessmentOut:
@@ -31,7 +32,7 @@ def _build_out(record: OccupationalTherapyAssessment) -> OccupationalTherapyAsse
 def get_occupational_therapy(
     admission_id: int,
     db: Session = Depends(get_db),
-    _: User = Depends(get_current_user),
+    _: User = Depends(_role),
 ):
     if not db.query(Admission).filter(Admission.id == admission_id).first():
         raise HTTPException(status_code=404, detail="Admisión no encontrada")
@@ -51,7 +52,7 @@ def upsert_occupational_therapy(
     admission_id: int,
     data: OccupationalTherapyAssessmentUpsert,
     db: Session = Depends(get_db),
-    _: User = Depends(get_current_user),
+    _: User = Depends(_role),
 ):
     if not db.query(Admission).filter(Admission.id == admission_id).first():
         raise HTTPException(status_code=404, detail="Admisión no encontrada")

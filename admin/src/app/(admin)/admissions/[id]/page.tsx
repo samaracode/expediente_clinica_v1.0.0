@@ -7,16 +7,17 @@ import { apiFetch } from "@/lib/api";
 import type { AdmissionOut, ResidentOut } from "@/types";
 import PageBreadcrumb from "@/components/common/PageBreadCrumb";
 import AdmissionStatusBadge from "@/components/residents/AdmissionStatusBadge";
+import { useAuth } from "@/context/AuthContext";
 
-const SECTIONS: Array<{ key: string; label: string; href: (id: string) => string; active: boolean }> = [
+const SECTIONS: Array<{ key: string; label: string; href: (id: string) => string; active: boolean; restrictedPath?: string }> = [
   { key: "consents", label: "Consentimientos", href: (id) => `/admissions/${id}/consents`, active: true },
   { key: "personal_items", label: "Inventario de pertenencias", href: (id) => `/admissions/${id}/personal-items`, active: true },
   { key: "economic_situation", label: "Situación económica", href: (id) => `/admissions/${id}/economic-situation`, active: true },
-  { key: "medical", label: "Evaluación médica", href: (id) => `/admissions/${id}/medical`, active: true },
-  { key: "therapeutic", label: "Evaluación terapéutica", href: (id) => `/admissions/${id}/therapeutic`, active: true },
-  { key: "social_work", label: "Trabajo social", href: (id) => `/admissions/${id}/social-work`, active: true },
-  { key: "psychology", label: "Psicología", href: (id) => `/admissions/${id}/psychology`, active: true },
-  { key: "occupational_therapy", label: "Terapia ocupacional", href: (id) => `/admissions/${id}/occupational-therapy`, active: true },
+  { key: "medical", label: "Evaluación médica", href: (id) => `/admissions/${id}/medical`, active: true, restrictedPath: "/medical" },
+  { key: "therapeutic", label: "Evaluación terapéutica", href: (id) => `/admissions/${id}/therapeutic`, active: true, restrictedPath: "/therapeutic" },
+  { key: "social_work", label: "Trabajo social", href: (id) => `/admissions/${id}/social-work`, active: true, restrictedPath: "/social-work" },
+  { key: "psychology", label: "Psicología", href: (id) => `/admissions/${id}/psychology`, active: true, restrictedPath: "/psychology" },
+  { key: "occupational_therapy", label: "Terapia ocupacional", href: (id) => `/admissions/${id}/occupational-therapy`, active: true, restrictedPath: "/occupational-therapy" },
   { key: "treatment_plan", label: "Plan de tratamiento", href: (id) => `/admissions/${id}/treatment-plan`, active: true },
   { key: "exit_passes", label: "Permisos de salida", href: (id) => `/admissions/${id}/exit-passes`, active: true },
   { key: "daily_logs", label: "Notas diarias", href: (id) => `/admissions/${id}/daily-logs`, active: true },
@@ -37,6 +38,7 @@ export default function AdmissionHubPage() {
   const [admission, setAdmission] = useState<AdmissionOut | null>(null);
   const [resident, setResident] = useState<ResidentOut | null>(null);
   const [loading, setLoading] = useState(true);
+  const { hasAccess } = useAuth();
 
   useEffect(() => {
     apiFetch<AdmissionOut>(`/admissions/${id}`)
@@ -114,10 +116,11 @@ export default function AdmissionHubPage() {
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {SECTIONS.map((section) => {
             const href = section.href(id);
+            const accessible = section.active && (!section.restrictedPath || hasAccess(section.restrictedPath));
             const card = (
               <div
                 className={`rounded-xl border p-4 transition-colors ${
-                  section.active
+                  accessible
                     ? "border-gray-200 bg-white hover:border-brand-300 hover:bg-brand-50 dark:border-gray-800 dark:bg-white/[0.03] cursor-pointer"
                     : "border-gray-100 bg-gray-50 opacity-50 cursor-not-allowed dark:border-gray-800 dark:bg-white/[0.01]"
                 }`}
@@ -126,10 +129,13 @@ export default function AdmissionHubPage() {
                 {!section.active && (
                   <p className="mt-0.5 text-xs text-gray-400">Próximamente</p>
                 )}
+                {section.active && section.restrictedPath && !hasAccess(section.restrictedPath) && (
+                  <p className="mt-0.5 text-xs text-gray-400">Sin acceso</p>
+                )}
               </div>
             );
 
-            return section.active ? (
+            return accessible ? (
               <Link key={section.key} href={href}>
                 {card}
               </Link>

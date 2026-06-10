@@ -3,6 +3,7 @@
 import { createContext, useCallback, useContext, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { apiFetch } from "@/lib/api";
+import { canAccess } from "@/lib/access";
 import type { User } from "@/types";
 
 interface AuthContextValue {
@@ -10,6 +11,7 @@ interface AuthContextValue {
   isLoading: boolean;
   login: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
+  hasAccess: (path: string) => boolean;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -42,8 +44,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     router.push("/signin");
   }, [router]);
 
+  const hasAccess = useCallback(
+    (path: string) => canAccess(path, user?.role ?? ""),
+    [user]
+  );
+
   return (
-    <AuthContext.Provider value={{ user, isLoading, login, logout }}>
+    <AuthContext.Provider value={{ user, isLoading, login, logout, hasAccess }}>
       {children}
     </AuthContext.Provider>
   );

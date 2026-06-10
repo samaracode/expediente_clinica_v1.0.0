@@ -2,7 +2,7 @@ from datetime import date
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
-from app.core.deps import get_current_user
+from app.core.deps import get_current_user, RoleRequired
 from app.db.session import get_db
 from app.models.admission import Admission
 from app.models.assessment import PsychologyAssessment
@@ -10,6 +10,7 @@ from app.models.user import User
 from app.schemas.psychology import PsychologyAssessmentOut, PsychologyAssessmentUpsert
 
 router = APIRouter()
+_role = RoleRequired(["admin", "psychologist"])
 
 
 def _build_out(record: PsychologyAssessment) -> PsychologyAssessmentOut:
@@ -29,7 +30,7 @@ def _build_out(record: PsychologyAssessment) -> PsychologyAssessmentOut:
 def get_psychology(
     admission_id: int,
     db: Session = Depends(get_db),
-    _: User = Depends(get_current_user),
+    _: User = Depends(_role),
 ):
     if not db.query(Admission).filter(Admission.id == admission_id).first():
         raise HTTPException(status_code=404, detail="Admisión no encontrada")
@@ -49,7 +50,7 @@ def upsert_psychology(
     admission_id: int,
     data: PsychologyAssessmentUpsert,
     db: Session = Depends(get_db),
-    _: User = Depends(get_current_user),
+    _: User = Depends(_role),
 ):
     if not db.query(Admission).filter(Admission.id == admission_id).first():
         raise HTTPException(status_code=404, detail="Admisión no encontrada")
