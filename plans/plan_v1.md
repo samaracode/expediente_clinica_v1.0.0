@@ -577,3 +577,193 @@ Smoke test en browser:
 5. Login con credenciales incorrectas → error 401 visible
 6. `POST /api/v1/auth/login` correcto → cookie `access_token` seteada como httpOnly
 7. Revisar `audit_logs` en DB después de crear un residente → registro automático presente
+
+---
+
+### Fase 4 — Módulos Clínicos, Admin y Reportes ✅ IMPLEMENTADO
+
+Todos los módulos del expediente clínico por admisión, el panel de administración y los reportes básicos.
+
+**Backend implementado:**
+- `consents.py` — GET lista + POST firmar por tipo
+- `personal_items.py` — GET/PUT inventario de pertenencias
+- `economic_situation.py` — GET/PUT situación económica
+- `medical.py` — GET/PUT evaluación médica (pruebas de droga + medicamentos)
+- `therapeutic.py` — GET/PUT evaluación terapéutica
+- `social_work.py` — GET/PUT trabajo social
+- `psychology.py` — GET/PUT psicología
+- `occupational_therapy.py` — GET/PUT terapia ocupacional
+- `treatment.py` — GET/PUT plan de tratamiento con etapas
+- `exit_passes.py` — GET lista + POST crear + PUT estado
+- `daily_logs.py` — GET lista + POST crear + PUT editar
+- `consultations.py` — GET/POST por admisión + PUT por id
+- `relatives.py` — GET/POST por residente + PUT por patient_relative_id (deduplicación por cédula)
+- `professionals.py` — GET/POST/PUT profesionales + GET áreas
+- `users.py` — GET/POST/PUT usuarios (admin)
+- `reports.py` — GET ingresos / GET consultas / GET progreso de tratamiento
+
+**Frontend implementado:**
+- `/admissions/[id]/` — hub de secciones del expediente
+- `/admissions/[id]/consents` — tabla de consentimientos con firma inline
+- `/admissions/[id]/personal-items` — inventario dinámico
+- `/admissions/[id]/economic-situation` — formulario situación económica
+- `/admissions/[id]/medical` — evaluación médica con sub-listas
+- `/admissions/[id]/therapeutic` — evaluación terapéutica
+- `/admissions/[id]/social-work` — trabajo social
+- `/admissions/[id]/psychology` — psicología
+- `/admissions/[id]/occupational-therapy` — terapia ocupacional
+- `/admissions/[id]/treatment-plan` — plan de tratamiento con etapas y progreso
+- `/admissions/[id]/exit-passes` — permisos de salida con flujo de aprobación
+- `/admissions/[id]/daily-logs` — notas diarias con edición inline
+- `/admissions/[id]/consultations` — consultas de seguimiento con edición inline
+- `/residents/[id]/relatives` — red familiar con tarjetas expandibles
+- `/admin/users` — gestión de usuarios y roles
+- `/admin/professionals` — gestión de profesionales por área
+- `/reports` — dashboard 3 pestañas: ingresos, consultas, progreso
+
+---
+
+### Fase 5 — Búsqueda, Filtros y Paginación
+
+**Objetivo:** Hacer usable el sistema cuando haya decenas o cientos de registros.
+
+**Backend:**
+- `GET /residents` — agregar `q` (búsqueda por nombre o cédula), `page`, `page_size` (default 20). Retornar `{ items: [...], total: int, page: int, pages: int }`
+- `GET /admissions/resident/{id}` — paginación opcional
+- `GET /admissions/{id}/daily-logs` — filtro por rango de fechas (`from_date`, `to_date`)
+- `GET /admissions/{id}/consultations` — filtro por área o profesional
+- `GET /admissions/{id}/exit-passes` — filtro por estado
+
+**Frontend:**
+- `residents/page.tsx` — campo de búsqueda en tiempo real (debounce 300ms) + controles de paginación (Anterior / Página X de N / Siguiente)
+- `admissions/[id]/daily-logs` — filtro de fecha (desde / hasta)
+- `admissions/[id]/consultations` — filtro por área
+- Componente reutilizable `Pagination.tsx` en `components/ui/`
+
+---
+
+### Fase 6 — Control de Acceso por Rol (Enforcement Frontend)
+
+**Objetivo:** Cada rol solo accede a lo que le corresponde. Actualmente el middleware protege login, pero no granularidad por sección.
+
+**Matriz de acceso por ruta (ya definida en el plan, pendiente de implementar):**
+
+| Ruta | Roles con acceso |
+|------|-----------------|
+| `/admin/*` | admin |
+| `/admissions/[id]/medical` | admin, medical, counselor |
+| `/admissions/[id]/therapeutic` | admin, counselor |
+| `/admissions/[id]/social-work` | admin, social_worker |
+| `/admissions/[id]/psychology` | admin, psychologist |
+| `/admissions/[id]/occupational-therapy` | admin, occupational_therapist |
+| `/admissions/[id]/daily-logs` | todos (solo escriben su rol) |
+| `/residents/*` (lectura) | todos |
+
+**Frontend:**
+- `admin/src/middleware.ts` — ampliar la lógica actual para enforcer la matriz de acceso por ruta
+- `AuthContext` — exponer `hasAccess(route: string): boolean` helper
+- En páginas sensibles: mostrar mensaje "Sin acceso" en lugar de redirigir (mejor UX para navegación directa por URL)
+- Sidebar: ocultar secciones de Admin para roles no-admin
+
+**Backend:**
+- Agregar `role_required(["admin"])` dep a endpoints de `users.py` y `professionals.py` que ya lo necesitan
+- Agregar `role_required(["admin", "medical", "counselor"])` a endpoints médicos
+
+---
+
+### Fase 7 — Borrado Lógico (Archivar / Eliminar)
+
+**Objetivo:** Permitir corregir errores sin destruir datos históricos. Nunca DELETE físico en producción.
+
+**Patrón:** `is_deleted: bool = False` + `deleted_at: datetime | None` en las tablas afectadas. Todos los GET filtran `WHERE is_deleted = false`.
+
+**Entidades con borrado lógico:**
+- `residents` — archivar residente (oculta de la lista activa, mantiene historial)
+- `admissions` — solo admin puede archivar admisiones erróneas
+- `daily_logs` — eliminar nota errónea del día
+- `exit_passes` — cancelar permiso
+- `consultations` — eliminar consulta duplicada o errónea
+- `patient_relatives` — desvincular familiar (no borra el `Relative` base)
+
+**Backend (por entidad):**
+- `DELETE /residents/{id}` — soft delete (requiere rol admin)
+- `DELETE /admissions/{id}` — soft delete (requiere rol admin)
+- `DELETE /daily-logs/{id}` — soft delete (usuario que lo creó o admin)
+- `DELETE /consultations/{id}` — soft delete (admin)
+- `DELETE /relatives/{patient_relative_id}` — desvincula (borra `PatientRelative`, no `Relative`)
+
+**Frontend:**
+- Botón "Archivar" (con modal de confirmación) en perfil de residente
+- Botón "Eliminar" (con confirmación) en filas de notas diarias, consultas
+- Residentes archivados: toggle "Mostrar archivados" en la lista
+- Admisión errónea: solo admin ve el botón, requiere confirmación de texto
+
+---
+
+### Fase 8 — Exportar / Imprimir Expediente a PDF
+
+**Objetivo:** Generar un PDF del expediente completo de una admisión para impresión o archivo físico (requerimiento IAFA).
+
+**Opción elegida:** Generación en backend con WeasyPrint (renderiza HTML→PDF, soporte completo CSS). Alternativa más simple: endpoint que retorna HTML con `@media print` styles, el navegador imprime.
+
+**Backend:**
+- Instalar `weasyprint` (o `reportlab` como fallback más ligero)
+- `GET /admissions/{id}/export/pdf` — compila todos los datos de la admisión, renderiza template Jinja2 HTML, retorna `application/pdf`
+- Template HTML en `backend/app/templates/admission_report.html` — layout de impresión A4 con logo ZOE, secciones del expediente
+
+**Frontend:**
+- Botón "Exportar PDF" en la página hub de admisión (`/admissions/[id]`)
+- Al clickear: `window.open(/api/v1/admissions/{id}/export/pdf)` — el browser descarga / abre el PDF
+- Estado loading mientras el backend genera el archivo
+
+**Contenido del PDF:**
+1. Portada: nombre del residente, número de admisión, fechas, estado
+2. Datos del residente y red familiar
+3. Consentimientos (tabla con estado)
+4. Evaluaciones (médica, terapéutica, social, psicología, TO)
+5. Plan de tratamiento y etapas
+6. Notas diarias (últimas 30)
+7. Consultas de seguimiento
+
+---
+
+### Fase 9 — Notificaciones Básicas
+
+**Objetivo:** Alertar al personal de eventos clínicamente importantes sin email ni push — visible en el panel al iniciar sesión.
+
+**Tipos de notificaciones:**
+1. **Próximas citas** — `consultations` con `next_appointment_date` en los próximos 3 días
+2. **Permisos vencidos** — `exit_passes` con `return_date_expected < hoy` y `status = approved` (el residente no regresó)
+3. **Etapa de tratamiento próxima a vencer** — `treatment_stages` con `end_date` en los próximos 7 días y `status = active`
+
+**Backend:**
+- `GET /notifications` — retorna lista de notificaciones activas para el usuario actual (filtrado por rol):
+  ```json
+  [
+    { "type": "upcoming_appointment", "message": "...", "entity_id": 42, "entity_type": "consultation", "due_date": "2026-06-12" },
+    { "type": "overdue_exit_pass", "message": "...", "entity_id": 15, "entity_type": "exit_pass", "due_date": "2026-06-09" }
+  ]
+  ```
+- Sin tabla adicional — se calculan on-the-fly con queries directas
+
+**Frontend:**
+- Campana en el navbar (ya existe el ícono en TailAdmin) con badge de conteo
+- Dropdown con lista de notificaciones, cada una con link a la entidad
+- Al entrar al dashboard: fetch automático de `/notifications`
+- Componente `NotificationBell.tsx` en `components/common/`
+
+---
+
+## Estado de Implementación
+
+| Fase | Descripción | Estado |
+|------|-------------|--------|
+| 1 | Modelos BD, migración, seed | ✅ Completo |
+| 2 | Autenticación (JWT, httpOnly cookies) | ✅ Completo |
+| 3 | Residentes y admisiones | ✅ Completo |
+| 4 | Módulos clínicos, admin, reportes | ✅ Completo |
+| 5 | Búsqueda, filtros y paginación | ⏳ Pendiente |
+| 6 | Control de acceso por rol (enforcement) | ⏳ Pendiente |
+| 7 | Borrado lógico (archivar / eliminar) | ⏳ Pendiente |
+| 8 | Exportar / imprimir expediente a PDF | ⏳ Pendiente |
+| 9 | Notificaciones básicas | ⏳ Pendiente |

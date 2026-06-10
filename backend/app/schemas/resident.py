@@ -1,5 +1,5 @@
 from datetime import date, datetime
-from typing import Optional
+from typing import List, Optional
 from pydantic import BaseModel
 from app.models.resident import Sex, MaritalStatus
 
@@ -62,3 +62,10 @@ class ResidentList(BaseModel):
     created_at: datetime
 
     model_config = {"from_attributes": True}
+
+
+class ResidentPage(BaseModel):
+    items: List[ResidentList]
+    total: int
+    page: int
+    pages: int

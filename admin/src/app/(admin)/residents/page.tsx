@@ -3,21 +3,39 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { apiFetch } from "@/lib/api";
-import type { ResidentList } from "@/types";
+import type { ResidentPage } from "@/types";
 import PageBreadcrumb from "@/components/common/PageBreadCrumb";
 import Button from "@/components/ui/button/Button";
+import Pagination from "@/components/ui/Pagination";
+
+const PAGE_SIZE = 20;
 
 export default function ResidentsPage() {
-  const [residents, setResidents] = useState<ResidentList[]>([]);
   const [query, setQuery] = useState("");
+  const [debouncedQuery, setDebouncedQuery] = useState("");
+  const [page, setPage] = useState(1);
+  const [data, setData] = useState<ResidentPage | null>(null);
   const [loading, setLoading] = useState(true);
 
+  // Debounce search: reset to page 1 after 300ms idle
   useEffect(() => {
-    const params = query ? `?q=${encodeURIComponent(query)}` : "";
-    apiFetch<ResidentList[]>(`/residents${params}`)
-      .then(setResidents)
-      .finally(() => setLoading(false));
+    const timer = setTimeout(() => {
+      setDebouncedQuery(query);
+      setPage(1);
+    }, 300);
+    return () => clearTimeout(timer);
   }, [query]);
+
+  useEffect(() => {
+    setLoading(true);
+    const params = new URLSearchParams({ page: String(page), page_size: String(PAGE_SIZE) });
+    if (debouncedQuery) params.set("q", debouncedQuery);
+    apiFetch<ResidentPage>(`/residents?${params}`)
+      .then(setData)
+      .finally(() => setLoading(false));
+  }, [debouncedQuery, page]);
+
+  const residents = data?.items ?? [];
 
   return (
     <div className="p-4 mx-auto max-w-screen-2xl md:p-6">
@@ -58,7 +76,7 @@ export default function ResidentsPage() {
               {!loading && residents.length === 0 && (
                 <tr>
                   <td colSpan={6} className="px-4 py-8 text-center text-sm text-gray-400">
-                    {query ? "Sin resultados para la búsqueda." : "Aún no hay residentes registrados."}
+                    {debouncedQuery ? "Sin resultados para la búsqueda." : "Aún no hay residentes registrados."}
                   </td>
                 </tr>
               )}
@@ -83,6 +101,11 @@ export default function ResidentsPage() {
             </tbody>
           </table>
         </div>
+        {data && (
+          <div className="border-t border-gray-100 px-4 dark:border-gray-800">
+            <Pagination page={data.page} pages={data.pages} total={data.total} onPage={setPage} />
+          </div>
+        )}
       </div>
     </div>
   );

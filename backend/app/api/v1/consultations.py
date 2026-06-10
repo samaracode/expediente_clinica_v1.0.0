@@ -1,5 +1,6 @@
 from datetime import date
-from fastapi import APIRouter, Depends, HTTPException
+from typing import Optional
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session, joinedload
 
 from app.core.deps import get_current_user, get_db
@@ -49,23 +50,20 @@ def _load(db: Session, consultation_id: int) -> Consultation:
 @router.get("/{admission_id}/consultations", response_model=list[ConsultationOut])
 def list_consultations(
     admission_id: int,
+    area_id: Optional[int] = Query(None),
     db: Session = Depends(get_db),
     _: object = Depends(get_current_user),
 ):
-    db.query(Admission).filter(Admission.id == admission_id).first() or (_ for _ in ()).throw(
-        HTTPException(status_code=404, detail="Admisión no encontrada")
-    )
-    rows = (
+    if not db.query(Admission).filter(Admission.id == admission_id).first():
+        raise HTTPException(status_code=404, detail="Admisión no encontrada")
+    q = (
         db.query(Consultation)
-        .options(
-            joinedload(Consultation.professional),
-            joinedload(Consultation.area),
-        )
+        .options(joinedload(Consultation.professional), joinedload(Consultation.area))
         .filter(Consultation.admission_id == admission_id)
-        .order_by(Consultation.consultation_date.desc())
-        .all()
     )
-    return [_build_out(r) for r in rows]
+    if area_id:
+        q = q.filter(Consultation.area_id == area_id)
+    return [_build_out(r) for r in q.order_by(Consultation.consultation_date.desc()).all()]
 
 
 @router.post("/{admission_id}/consultations", response_model=ConsultationOut, status_code=201)

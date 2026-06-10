@@ -166,12 +166,19 @@ export default function DailyLogsPage() {
   const [form, setForm] = useState<NewLogForm>(emptyForm());
   const [creating, setCreating] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
+  const [fromDate, setFromDate] = useState("");
+  const [toDate, setToDate] = useState("");
 
   useEffect(() => {
-    apiFetch<DailyLogOut[]>(`/admissions/${id}/daily-logs`)
+    setLoading(true);
+    const params = new URLSearchParams();
+    if (fromDate) params.set("from_date", fromDate);
+    if (toDate) params.set("to_date", toDate);
+    const qs = params.toString() ? `?${params}` : "";
+    apiFetch<DailyLogOut[]>(`/admissions/${id}/daily-logs${qs}`)
       .then(setLogs)
       .finally(() => setLoading(false));
-  }, [id]);
+  }, [id, fromDate, toDate]);
 
   function setField<K extends keyof NewLogForm>(field: K, value: string) {
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -213,7 +220,7 @@ export default function DailyLogsPage() {
       <PageBreadcrumb pageTitle="Notas diarias" />
 
       <div className="rounded-2xl border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-white/[0.03]">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
             <h2 className="text-lg font-semibold text-gray-800 dark:text-white">Notas diarias</h2>
             <p className="text-sm text-gray-500">
@@ -222,9 +229,38 @@ export default function DailyLogsPage() {
               </Link>
             </p>
           </div>
-          <Button onClick={() => { setShowForm((v) => !v); setCreateError(null); }}>
-            {showForm ? "Cancelar" : "Nueva nota"}
-          </Button>
+          <div className="flex flex-wrap items-end gap-3">
+            <div>
+              <label className="mb-1 block text-xs text-gray-400">Desde</label>
+              <input
+                type="date"
+                value={fromDate}
+                onChange={(e) => setFromDate(e.target.value)}
+                className="rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-700 outline-none focus:border-brand-500 dark:border-gray-700 dark:bg-gray-900 dark:text-white"
+              />
+            </div>
+            <div>
+              <label className="mb-1 block text-xs text-gray-400">Hasta</label>
+              <input
+                type="date"
+                value={toDate}
+                onChange={(e) => setToDate(e.target.value)}
+                className="rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-700 outline-none focus:border-brand-500 dark:border-gray-700 dark:bg-gray-900 dark:text-white"
+              />
+            </div>
+            {(fromDate || toDate) && (
+              <button
+                type="button"
+                onClick={() => { setFromDate(""); setToDate(""); }}
+                className="text-xs text-gray-400 hover:text-gray-600"
+              >
+                Limpiar
+              </button>
+            )}
+            <Button onClick={() => { setShowForm((v) => !v); setCreateError(null); }}>
+              {showForm ? "Cancelar" : "Nueva nota"}
+            </Button>
+          </div>
         </div>
       </div>
 

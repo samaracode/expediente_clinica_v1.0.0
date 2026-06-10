@@ -361,6 +361,13 @@ export interface RelativeOut {
   education_level: string | null;
 }
 
+export interface ResidentPage {
+  items: ResidentList[];
+  total: number;
+  page: number;
+  pages: number;
+}
+
 export interface AdmissionCreate {
   resident_id: number;
   admission_type?: AdmissionType;

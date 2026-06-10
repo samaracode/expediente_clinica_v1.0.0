@@ -1,6 +1,6 @@
 from datetime import datetime, timezone
-from typing import List
-from fastapi import APIRouter, Depends, HTTPException
+from typing import List, Optional
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
 from app.core.deps import get_current_user
@@ -47,18 +47,19 @@ def _build_out(p: ExitPass) -> ExitPassOut:
 @router.get("/{admission_id}/exit-passes", response_model=List[ExitPassOut])
 def list_exit_passes(
     admission_id: int,
+    status_filter: Optional[str] = Query(None, alias="status"),
     db: Session = Depends(get_db),
     _: User = Depends(get_current_user),
 ):
     if not db.query(Admission).filter(Admission.id == admission_id).first():
         raise HTTPException(status_code=404, detail="Admisión no encontrada")
-    passes = (
-        db.query(ExitPass)
-        .filter(ExitPass.admission_id == admission_id)
-        .order_by(ExitPass.requested_at.desc())
-        .all()
-    )
-    return [_build_out(p) for p in passes]
+    q = db.query(ExitPass).filter(ExitPass.admission_id == admission_id)
+    if status_filter:
+        try:
+            q = q.filter(ExitPass.status == PassStatus(status_filter))
+        except ValueError:
+            pass
+    return [_build_out(p) for p in q.order_by(ExitPass.requested_at.desc()).all()]
 
 
 @router.post("/{admission_id}/exit-passes", response_model=ExitPassOut, status_code=201)

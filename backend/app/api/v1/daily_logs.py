@@ -1,6 +1,6 @@
 from datetime import date
-from typing import List
-from fastapi import APIRouter, Depends, HTTPException
+from typing import List, Optional
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
 from app.core.deps import get_current_user
@@ -28,18 +28,19 @@ def _build_out(log: DailyLog) -> DailyLogOut:
 @router.get("/{admission_id}/daily-logs", response_model=List[DailyLogOut])
 def list_daily_logs(
     admission_id: int,
+    from_date: Optional[str] = Query(None, description="Fecha inicio YYYY-MM-DD"),
+    to_date: Optional[str] = Query(None, description="Fecha fin YYYY-MM-DD"),
     db: Session = Depends(get_db),
     _: User = Depends(get_current_user),
 ):
     if not db.query(Admission).filter(Admission.id == admission_id).first():
         raise HTTPException(status_code=404, detail="Admisión no encontrada")
-    logs = (
-        db.query(DailyLog)
-        .filter(DailyLog.admission_id == admission_id)
-        .order_by(DailyLog.log_date.desc())
-        .all()
-    )
-    return [_build_out(log) for log in logs]
+    q = db.query(DailyLog).filter(DailyLog.admission_id == admission_id)
+    if from_date:
+        q = q.filter(DailyLog.log_date >= date.fromisoformat(from_date))
+    if to_date:
+        q = q.filter(DailyLog.log_date <= date.fromisoformat(to_date))
+    return [_build_out(log) for log in q.order_by(DailyLog.log_date.desc()).all()]
 
 
 @router.post("/{admission_id}/daily-logs", response_model=DailyLogOut, status_code=201)

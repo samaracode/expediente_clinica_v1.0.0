@@ -195,18 +195,29 @@ export default function ConsultationsPage() {
   const [form, setForm] = useState<NewForm>(EMPTY_FORM);
   const [creating, setCreating] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
+  const [areaFilter, setAreaFilter] = useState("");
 
+  // Load areas and professionals once
   useEffect(() => {
     Promise.all([
-      apiFetch<ConsultationOut[]>(`/admissions/${id}/consultations`),
       apiFetch<TreatmentAreaOut[]>("/professionals/areas"),
       apiFetch<ProfessionalOut[]>("/professionals/"),
-    ]).then(([c, a, p]) => {
-      setConsultations(c);
+    ]).then(([a, p]) => {
       setAreas(a);
       setProfessionals(p.filter((pr) => pr.is_active));
-    }).finally(() => setLoading(false));
-  }, [id]);
+    });
+  }, []);
+
+  // Reload consultations when area filter changes
+  useEffect(() => {
+    setLoading(true);
+    const params = new URLSearchParams();
+    if (areaFilter) params.set("area_id", areaFilter);
+    const qs = params.toString() ? `?${params}` : "";
+    apiFetch<ConsultationOut[]>(`/admissions/${id}/consultations${qs}`)
+      .then(setConsultations)
+      .finally(() => setLoading(false));
+  }, [id, areaFilter]);
 
   function setField<K extends keyof NewForm>(k: K, v: string) {
     setForm((prev) => ({ ...prev, [k]: v }));
@@ -250,14 +261,31 @@ export default function ConsultationsPage() {
     <div className="p-4 mx-auto max-w-screen-2xl md:p-6 space-y-6">
       <PageBreadcrumb pageTitle="Consultas de seguimiento" />
 
-      <div className="flex items-center justify-between rounded-2xl border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-white/[0.03]">
-        <div>
-          <h2 className="text-lg font-semibold text-gray-800 dark:text-white">Consultas de seguimiento</h2>
-          <Link href={`/admissions/${id}`} className="text-xs text-brand-500 hover:underline">← Volver al expediente</Link>
+      <div className="rounded-2xl border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-white/[0.03]">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <h2 className="text-lg font-semibold text-gray-800 dark:text-white">Consultas de seguimiento</h2>
+            <Link href={`/admissions/${id}`} className="text-xs text-brand-500 hover:underline">← Volver al expediente</Link>
+          </div>
+          <div className="flex items-end gap-3">
+            <div>
+              <label className="mb-1 block text-xs text-gray-400">Filtrar por área</label>
+              <select
+                value={areaFilter}
+                onChange={(e) => setAreaFilter(e.target.value)}
+                className="rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-700 outline-none focus:border-brand-500 dark:border-gray-700 dark:bg-gray-900 dark:text-white"
+              >
+                <option value="">Todas las áreas</option>
+                {areas.map((a) => (
+                  <option key={a.id} value={a.id}>{AREA_LABELS[a.name] ?? a.name}</option>
+                ))}
+              </select>
+            </div>
+            <Button onClick={() => { setShowForm((v) => !v); setCreateError(null); }}>
+              {showForm ? "Cancelar" : "Nueva consulta"}
+            </Button>
+          </div>
         </div>
-        <Button onClick={() => { setShowForm((v) => !v); setCreateError(null); }}>
-          {showForm ? "Cancelar" : "Nueva consulta"}
-        </Button>
       </div>
 
       {showForm && (
