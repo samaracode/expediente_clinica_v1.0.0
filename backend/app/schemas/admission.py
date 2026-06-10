@@ -40,6 +40,7 @@ class AdmissionOut(BaseModel):
     judicial_status: Optional[str] = None
     has_support_network: bool
     assigned_counselor_id: Optional[int] = None
+    is_deleted: bool = False
     created_at: datetime
 
     model_config = {"from_attributes": True}

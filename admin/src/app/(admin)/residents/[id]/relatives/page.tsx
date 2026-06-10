@@ -66,9 +66,11 @@ const EMPTY_FORM: RelativeForm = {
 function RelativeCard({
   relative,
   onUpdate,
+  onUnlink,
 }: {
   relative: RelativeOut;
   onUpdate: (r: RelativeOut) => void;
+  onUnlink: (patientRelativeId: number) => void;
 }) {
   const [expanded, setExpanded] = useState(false);
   const [form, setForm] = useState<RelativeForm>({
@@ -84,6 +86,18 @@ function RelativeCard({
     education_level: relative.education_level ?? "",
   });
   const [saving, setSaving] = useState(false);
+  const [confirmUnlink, setConfirmUnlink] = useState(false);
+  const [unlinking, setUnlinking] = useState(false);
+
+  async function handleUnlink() {
+    setUnlinking(true);
+    try {
+      await apiFetch(`/residents/relatives/${relative.patient_relative_id}`, { method: "DELETE" });
+      onUnlink(relative.patient_relative_id);
+    } finally {
+      setUnlinking(false);
+    }
+  }
 
   function setField<K extends keyof RelativeForm>(k: K, v: string) {
     setForm((prev) => ({ ...prev, [k]: v }));
@@ -135,7 +149,35 @@ function RelativeCard({
             {relative.phone && ` · ${relative.phone}`}
           </p>
         </div>
-        <span className="text-xs text-brand-500 mt-1">{expanded ? "▲ Cerrar" : "▼ Editar"}</span>
+        <div className="flex items-center gap-2 mt-1">
+          {confirmUnlink ? (
+            <span className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+              <span className="text-xs text-gray-400">¿Desvincular?</span>
+              <button
+                onClick={(e) => { e.stopPropagation(); handleUnlink(); }}
+                disabled={unlinking}
+                className="rounded px-2 py-0.5 text-xs font-medium bg-error-500 text-white hover:bg-error-600 disabled:opacity-50"
+              >
+                {unlinking ? "..." : "Sí"}
+              </button>
+              <button
+                onClick={(e) => { e.stopPropagation(); setConfirmUnlink(false); }}
+                className="rounded px-2 py-0.5 text-xs border border-gray-300 text-gray-500"
+              >
+                No
+              </button>
+            </span>
+          ) : (
+            <button
+              type="button"
+              onClick={(e) => { e.stopPropagation(); setConfirmUnlink(true); }}
+              className="text-xs text-error-500 hover:underline"
+            >
+              Desvincular
+            </button>
+          )}
+          <span className="text-xs text-brand-500">{expanded ? "▲ Cerrar" : "▼ Editar"}</span>
+        </div>
       </button>
 
       {expanded && (
@@ -250,6 +292,10 @@ export default function RelativesPage() {
     setRelatives((prev) => prev.map((r) => (r.patient_relative_id === updated.patient_relative_id ? updated : r)));
   }
 
+  function handleUnlink(patientRelativeId: number) {
+    setRelatives((prev) => prev.filter((r) => r.patient_relative_id !== patientRelativeId));
+  }
+
   return (
     <div className="p-4 mx-auto max-w-screen-2xl md:p-6 space-y-6">
       <PageBreadcrumb pageTitle="Familiares" />
@@ -329,7 +375,7 @@ export default function RelativesPage() {
           </div>
         ) : (
           relatives.map((r) => (
-            <RelativeCard key={r.patient_relative_id} relative={r} onUpdate={handleUpdate} />
+            <RelativeCard key={r.patient_relative_id} relative={r} onUpdate={handleUpdate} onUnlink={handleUnlink} />
           ))
         )}
       </div>

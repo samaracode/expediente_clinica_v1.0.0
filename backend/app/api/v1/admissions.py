@@ -1,8 +1,9 @@
+from datetime import datetime, timezone
 from typing import List
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
-from app.core.deps import get_current_user
+from app.core.deps import get_current_user, RoleRequired
 from app.db.session import get_db
 from app.models.admission import Admission
 from app.models.resident import Resident
@@ -10,6 +11,7 @@ from app.models.user import User
 from app.schemas.admission import AdmissionCreate, AdmissionOut, AdmissionStatusUpdate
 
 router = APIRouter()
+_admin_only = RoleRequired(["admin"])
 
 
 def _generate_admission_number(db: Session) -> str:
@@ -52,7 +54,26 @@ def get_resident_admissions(
 ):
     if not db.query(Resident).filter(Resident.id == resident_id).first():
         raise HTTPException(status_code=404, detail="Residente no encontrado")
-    return db.query(Admission).filter(Admission.resident_id == resident_id).order_by(Admission.created_at.desc()).all()
+    return (
+        db.query(Admission)
+        .filter(Admission.resident_id == resident_id, Admission.is_deleted == False)  # noqa: E712
+        .order_by(Admission.created_at.desc())
+        .all()
+    )
+
+
+@router.delete("/{admission_id}", status_code=204)
+def archive_admission(
+    admission_id: int,
+    db: Session = Depends(get_db),
+    _: User = Depends(_admin_only),
+):
+    admission = db.query(Admission).filter(Admission.id == admission_id).first()
+    if not admission:
+        raise HTTPException(status_code=404, detail="Admisión no encontrada")
+    admission.is_deleted = True
+    admission.deleted_at = datetime.now(timezone.utc)
+    db.commit()
 
 
 @router.put("/{admission_id}/status", response_model=AdmissionOut)

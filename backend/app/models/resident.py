@@ -51,6 +51,8 @@ class Resident(Base):
     is_insured = sa.Column(sa.Boolean, default=False)
     insurance_type = sa.Column(sa.String, nullable=True)
     photo_file_id = sa.Column(sa.Integer, sa.ForeignKey("files.id"), nullable=True)
+    is_deleted = sa.Column(sa.Boolean, nullable=False, default=False, server_default="false")
+    deleted_at = sa.Column(sa.DateTime(timezone=True), nullable=True)
     created_at = sa.Column(sa.DateTime(timezone=True), server_default=sa.func.now())
     updated_at = sa.Column(sa.DateTime(timezone=True), onupdate=sa.func.now())
 

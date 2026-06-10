@@ -47,6 +47,7 @@ class ResidentOut(BaseModel):
     emergency_contact_name: Optional[str] = None
     emergency_contact_phone: Optional[str] = None
     is_insured: bool
+    is_deleted: bool = False
     created_at: datetime
 
     model_config = {"from_attributes": True}
@@ -59,6 +60,7 @@ class ResidentList(BaseModel):
     last_name: str
     id_number: Optional[str] = None
     phone_mobile: Optional[str] = None
+    is_deleted: bool = False
     created_at: datetime
 
     model_config = {"from_attributes": True}

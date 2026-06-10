@@ -47,6 +47,8 @@ class DailyLog(Base):
     intervention_type = sa.Column(sa.String, nullable=True)
     notes = sa.Column(sa.Text, nullable=True)
     recommendations = sa.Column(sa.Text, nullable=True)
+    is_deleted = sa.Column(sa.Boolean, nullable=False, default=False, server_default="false")
+    deleted_at = sa.Column(sa.DateTime(timezone=True), nullable=True)
 
     admission = relationship("Admission", back_populates="daily_logs")
     logged_by = relationship("User", foreign_keys=[logged_by_id])
@@ -79,6 +81,8 @@ class Consultation(Base):
     observations = sa.Column(sa.Text, nullable=True)
     next_appointment_date = sa.Column(sa.Date, nullable=True)
     consultation_date = sa.Column(sa.Date, nullable=False)
+    is_deleted = sa.Column(sa.Boolean, nullable=False, default=False, server_default="false")
+    deleted_at = sa.Column(sa.DateTime(timezone=True), nullable=True)
 
     admission = relationship("Admission", back_populates="consultations")
     professional = relationship("Professional", foreign_keys=[professional_id])

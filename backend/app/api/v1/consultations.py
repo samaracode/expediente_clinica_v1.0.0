@@ -1,15 +1,16 @@
-from datetime import date
+from datetime import date, datetime, timezone
 from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session, joinedload
 
-from app.core.deps import get_current_user, get_db
+from app.core.deps import get_current_user, get_db, RoleRequired
 from app.models.admission import Admission
 from app.models.follow_up import Consultation
 from app.models.user import Professional, TreatmentArea
 from app.schemas.consultations import ConsultationOut, ConsultationCreate, ConsultationUpdate
 
 router = APIRouter()
+_admin_only = RoleRequired(["admin"])
 
 
 def _build_out(c: Consultation) -> ConsultationOut:
@@ -59,11 +60,25 @@ def list_consultations(
     q = (
         db.query(Consultation)
         .options(joinedload(Consultation.professional), joinedload(Consultation.area))
-        .filter(Consultation.admission_id == admission_id)
+        .filter(Consultation.admission_id == admission_id, Consultation.is_deleted == False)  # noqa: E712
     )
     if area_id:
         q = q.filter(Consultation.area_id == area_id)
     return [_build_out(r) for r in q.order_by(Consultation.consultation_date.desc()).all()]
+
+
+@router.delete("/consultations/{consultation_id}", status_code=204)
+def delete_consultation(
+    consultation_id: int,
+    db: Session = Depends(get_db),
+    _: object = Depends(_admin_only),
+):
+    c = db.query(Consultation).filter(Consultation.id == consultation_id).first()
+    if not c:
+        raise HTTPException(status_code=404, detail="Consulta no encontrada")
+    c.is_deleted = True
+    c.deleted_at = datetime.now(timezone.utc)
+    db.commit()
 
 
 @router.post("/{admission_id}/consultations", response_model=ConsultationOut, status_code=201)

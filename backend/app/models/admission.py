@@ -40,6 +40,8 @@ class Admission(Base):
     sponsor_address = sa.Column(sa.Text, nullable=True)
     judicial_status = sa.Column(sa.String, nullable=True)
     has_support_network = sa.Column(sa.Boolean, default=False)
+    is_deleted = sa.Column(sa.Boolean, nullable=False, default=False, server_default="false")
+    deleted_at = sa.Column(sa.DateTime(timezone=True), nullable=True)
     created_at = sa.Column(sa.DateTime(timezone=True), server_default=sa.func.now())
     updated_at = sa.Column(sa.DateTime(timezone=True), onupdate=sa.func.now())
 

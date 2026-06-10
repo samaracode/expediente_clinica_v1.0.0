@@ -53,11 +53,13 @@ function EditableRow({
   areas,
   professionals,
   onUpdate,
+  onDelete,
 }: {
   consultation: ConsultationOut;
   areas: TreatmentAreaOut[];
   professionals: ProfessionalOut[];
   onUpdate: (c: ConsultationOut) => void;
+  onDelete: (id: number) => void;
 }) {
   const [expanded, setExpanded] = useState(false);
   const [form, setForm] = useState<NewForm>({
@@ -70,6 +72,19 @@ function EditableRow({
     next_appointment_date: consultation.next_appointment_date ?? "",
   });
   const [saving, setSaving] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+
+  async function handleDelete(e: React.MouseEvent) {
+    e.stopPropagation();
+    setDeleting(true);
+    try {
+      await apiFetch(`/admissions/consultations/${consultation.id}`, { method: "DELETE" });
+      onDelete(consultation.id);
+    } finally {
+      setDeleting(false);
+    }
+  }
 
   function setField<K extends keyof NewForm>(k: K, v: string) {
     setForm((prev) => ({ ...prev, [k]: v }));
@@ -126,8 +141,34 @@ function EditableRow({
             ? new Date(consultation.next_appointment_date + "T12:00:00").toLocaleDateString("es-CR")
             : "—"}
         </td>
-        <td className="px-4 py-3 text-right">
-          <span className="text-xs text-brand-500">{expanded ? "▲" : "▼"}</span>
+        <td className="px-4 py-3 text-right" onClick={(e) => e.stopPropagation()}>
+          {confirmDelete ? (
+            <span className="flex items-center justify-end gap-1">
+              <button
+                onClick={handleDelete}
+                disabled={deleting}
+                className="rounded px-2 py-0.5 text-xs font-medium bg-error-500 text-white hover:bg-error-600 disabled:opacity-50"
+              >
+                {deleting ? "..." : "Sí"}
+              </button>
+              <button
+                onClick={(e) => { e.stopPropagation(); setConfirmDelete(false); }}
+                className="rounded px-2 py-0.5 text-xs border border-gray-300 text-gray-500"
+              >
+                No
+              </button>
+            </span>
+          ) : (
+            <span className="flex items-center justify-end gap-3">
+              <button
+                onClick={(e) => { e.stopPropagation(); setConfirmDelete(true); }}
+                className="text-xs text-error-500 hover:underline"
+              >
+                Eliminar
+              </button>
+              <span className="text-xs text-brand-500">{expanded ? "▲" : "▼"}</span>
+            </span>
+          )}
         </td>
       </tr>
       {expanded && (
@@ -257,6 +298,10 @@ export default function ConsultationsPage() {
     setConsultations((prev) => prev.map((c) => (c.id === updated.id ? updated : c)));
   }
 
+  function handleDelete(consultationId: number) {
+    setConsultations((prev) => prev.filter((c) => c.id !== consultationId));
+  }
+
   return (
     <div className="p-4 mx-auto max-w-screen-2xl md:p-6 space-y-6">
       <PageBreadcrumb pageTitle="Consultas de seguimiento" />
@@ -362,6 +407,7 @@ export default function ConsultationsPage() {
                   areas={areas}
                   professionals={professionals}
                   onUpdate={handleUpdate}
+                  onDelete={handleDelete}
                 />
               ))}
             </tbody>

@@ -48,10 +48,12 @@ function LogCard({
   log,
   admissionId,
   onUpdate,
+  onDelete,
 }: {
   log: DailyLogOut;
   admissionId: string;
   onUpdate: (updated: DailyLogOut) => void;
+  onDelete: (id: number) => void;
 }) {
   const [editing, setEditing] = useState(false);
   const [interventionType, setInterventionType] = useState(log.intervention_type ?? "");
@@ -59,6 +61,18 @@ function LogCard({
   const [recommendations, setRecommendations] = useState(log.recommendations ?? "");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+
+  async function handleDelete() {
+    setDeleting(true);
+    try {
+      await apiFetch(`/admissions/${admissionId}/daily-logs/${log.id}`, { method: "DELETE" });
+      onDelete(log.id);
+    } finally {
+      setDeleting(false);
+    }
+  }
 
   async function handleSave() {
     setSaving(true);
@@ -105,13 +119,41 @@ function LogCard({
             </span>
           )}
         </div>
-        <button
-          type="button"
-          onClick={() => setEditing((v) => !v)}
-          className="text-xs text-brand-500 hover:underline"
-        >
-          {editing ? "Cancelar" : "Editar"}
-        </button>
+        <div className="flex items-center gap-2">
+          {confirmDelete ? (
+            <span className="flex items-center gap-1">
+              <span className="text-xs text-gray-400">¿Eliminar?</span>
+              <button
+                onClick={handleDelete}
+                disabled={deleting}
+                className="rounded px-2 py-0.5 text-xs font-medium bg-error-500 text-white hover:bg-error-600 disabled:opacity-50"
+              >
+                {deleting ? "..." : "Sí"}
+              </button>
+              <button
+                onClick={() => setConfirmDelete(false)}
+                className="rounded px-2 py-0.5 text-xs font-medium border border-gray-300 text-gray-500"
+              >
+                No
+              </button>
+            </span>
+          ) : (
+            <button
+              type="button"
+              onClick={() => { setEditing(false); setConfirmDelete(true); }}
+              className="text-xs text-error-500 hover:underline"
+            >
+              Eliminar
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={() => { setConfirmDelete(false); setEditing((v) => !v); }}
+            className="text-xs text-brand-500 hover:underline"
+          >
+            {editing ? "Cancelar" : "Editar"}
+          </button>
+        </div>
       </div>
 
       {editing ? (
@@ -215,6 +257,10 @@ export default function DailyLogsPage() {
     setLogs((prev) => prev.map((l) => (l.id === updated.id ? updated : l)));
   }
 
+  function handleDelete(logId: number) {
+    setLogs((prev) => prev.filter((l) => l.id !== logId));
+  }
+
   return (
     <div className="p-4 mx-auto max-w-screen-2xl md:p-6 space-y-6">
       <PageBreadcrumb pageTitle="Notas diarias" />
@@ -309,7 +355,7 @@ export default function DailyLogsPage() {
       ) : (
         <div className="space-y-4">
           {logs.map((log) => (
-            <LogCard key={log.id} log={log} admissionId={id} onUpdate={handleUpdate} />
+            <LogCard key={log.id} log={log} admissionId={id} onUpdate={handleUpdate} onDelete={handleDelete} />
           ))}
         </div>
       )}

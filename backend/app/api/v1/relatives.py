@@ -104,6 +104,19 @@ def create_relative(
     return _build_out(_load_pr(db, pr.id))
 
 
+@router.delete("/relatives/{patient_relative_id}", status_code=204)
+def unlink_relative(
+    patient_relative_id: int,
+    db: Session = Depends(get_db),
+    _: object = Depends(get_current_user),
+):
+    pr = db.query(PatientRelative).filter(PatientRelative.id == patient_relative_id).first()
+    if not pr:
+        raise HTTPException(status_code=404, detail="Familiar no encontrado")
+    db.delete(pr)
+    db.commit()
+
+
 @router.put("/relatives/{patient_relative_id}", response_model=RelativeOut)
 def update_relative(
     patient_relative_id: int,

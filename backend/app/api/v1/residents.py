@@ -1,14 +1,17 @@
 import math
 import re
+from datetime import datetime, timezone
 from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 
-from app.core.deps import get_current_user
+from app.core.deps import get_current_user, RoleRequired
 from app.db.session import get_db
 from app.models.resident import Resident
 from app.models.user import User
 from app.schemas.resident import ResidentCreate, ResidentList, ResidentOut, ResidentUpdate, ResidentPage
+
+_admin_only = RoleRequired(["admin"])
 
 router = APIRouter()
 
@@ -23,10 +26,13 @@ def list_residents(
     q: Optional[str] = Query(None, description="Buscar por nombre o cédula"),
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
+    show_archived: bool = Query(False),
     db: Session = Depends(get_db),
     _: User = Depends(get_current_user),
 ):
     query = db.query(Resident)
+    if not show_archived:
+        query = query.filter(Resident.is_deleted == False)  # noqa: E712
     if q:
         like = f"%{q}%"
         query = query.filter(
@@ -38,6 +44,20 @@ def list_residents(
     pages = max(1, math.ceil(total / page_size))
     items = query.order_by(Resident.created_at.desc()).offset((page - 1) * page_size).limit(page_size).all()
     return ResidentPage(items=items, total=total, page=page, pages=pages)
+
+
+@router.delete("/{resident_id}", status_code=204)
+def archive_resident(
+    resident_id: int,
+    db: Session = Depends(get_db),
+    _: User = Depends(_admin_only),
+):
+    resident = db.query(Resident).filter(Resident.id == resident_id).first()
+    if not resident:
+        raise HTTPException(status_code=404, detail="Residente no encontrado")
+    resident.is_deleted = True
+    resident.deleted_at = datetime.now(timezone.utc)
+    db.commit()
 
 
 @router.post("", response_model=ResidentOut, status_code=status.HTTP_201_CREATED)

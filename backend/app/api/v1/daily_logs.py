@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import date, datetime, timezone
 from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
@@ -35,12 +35,31 @@ def list_daily_logs(
 ):
     if not db.query(Admission).filter(Admission.id == admission_id).first():
         raise HTTPException(status_code=404, detail="Admisión no encontrada")
-    q = db.query(DailyLog).filter(DailyLog.admission_id == admission_id)
+    q = db.query(DailyLog).filter(DailyLog.admission_id == admission_id, DailyLog.is_deleted == False)  # noqa: E712
     if from_date:
         q = q.filter(DailyLog.log_date >= date.fromisoformat(from_date))
     if to_date:
         q = q.filter(DailyLog.log_date <= date.fromisoformat(to_date))
     return [_build_out(log) for log in q.order_by(DailyLog.log_date.desc()).all()]
+
+
+@router.delete("/{admission_id}/daily-logs/{log_id}", status_code=204)
+def delete_daily_log(
+    admission_id: int,
+    log_id: int,
+    db: Session = Depends(get_db),
+    _: User = Depends(get_current_user),
+):
+    log = (
+        db.query(DailyLog)
+        .filter(DailyLog.id == log_id, DailyLog.admission_id == admission_id)
+        .first()
+    )
+    if not log:
+        raise HTTPException(status_code=404, detail="Nota no encontrada")
+    log.is_deleted = True
+    log.deleted_at = datetime.now(timezone.utc)
+    db.commit()
 
 
 @router.post("/{admission_id}/daily-logs", response_model=DailyLogOut, status_code=201)

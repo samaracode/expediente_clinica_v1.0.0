@@ -40,6 +40,7 @@ export interface ResidentList {
   last_name: string;
   id_number: string | null;
   phone_mobile: string | null;
+  is_deleted: boolean;
   created_at: string;
 }
 
@@ -90,6 +91,7 @@ export interface AdmissionOut {
   sponsor_name: string | null;
   has_support_network: boolean;
   assigned_counselor_id: number | null;
+  is_deleted: boolean;
   created_at: string;
 }
 

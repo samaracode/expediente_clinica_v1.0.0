@@ -1,19 +1,24 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { apiFetch } from "@/lib/api";
 import type { AdmissionOut, ResidentOut } from "@/types";
 import PageBreadcrumb from "@/components/common/PageBreadCrumb";
 import Button from "@/components/ui/button/Button";
 import AdmissionStatusBadge from "@/components/residents/AdmissionStatusBadge";
+import { useAuth } from "@/context/AuthContext";
 
 export default function ResidentProfilePage() {
   const { id } = useParams<{ id: string }>();
+  const router = useRouter();
+  const { user } = useAuth();
   const [resident, setResident] = useState<ResidentOut | null>(null);
   const [admissions, setAdmissions] = useState<AdmissionOut[]>([]);
   const [loading, setLoading] = useState(true);
+  const [confirmArchive, setConfirmArchive] = useState(false);
+  const [archiving, setArchiving] = useState(false);
 
   useEffect(() => {
     Promise.all([
@@ -23,6 +28,16 @@ export default function ResidentProfilePage() {
       .then(([r, a]) => { setResident(r); setAdmissions(a); })
       .finally(() => setLoading(false));
   }, [id]);
+
+  async function handleArchive() {
+    setArchiving(true);
+    try {
+      await apiFetch(`/residents/${id}`, { method: "DELETE" });
+      router.push("/residents");
+    } finally {
+      setArchiving(false);
+    }
+  }
 
   if (loading) return <div className="p-6 text-sm text-gray-400">Cargando...</div>;
   if (!resident) return <div className="p-6 text-sm text-error-500">Residente no encontrado.</div>;
@@ -51,6 +66,30 @@ export default function ResidentProfilePage() {
             <Link href={`/residents/${id}/edit`}>
               <Button variant="outline" size="sm">Editar</Button>
             </Link>
+            {user?.role === "admin" && !resident.is_deleted && (
+              confirmArchive ? (
+                <span className="flex items-center gap-1 text-sm">
+                  <span className="text-gray-500">¿Confirmar?</span>
+                  <button
+                    onClick={handleArchive}
+                    disabled={archiving}
+                    className="rounded px-2 py-1 text-xs font-medium bg-error-500 text-white hover:bg-error-600 disabled:opacity-50"
+                  >
+                    {archiving ? "Archivando..." : "Sí, archivar"}
+                  </button>
+                  <button
+                    onClick={() => setConfirmArchive(false)}
+                    className="rounded px-2 py-1 text-xs font-medium border border-gray-300 text-gray-600 hover:bg-gray-50"
+                  >
+                    Cancelar
+                  </button>
+                </span>
+              ) : (
+                <Button variant="outline" size="sm" onClick={() => setConfirmArchive(true)}>
+                  Archivar
+                </Button>
+              )
+            )}
           </div>
         </div>
         <dl className="grid grid-cols-2 gap-x-6 gap-y-3 sm:grid-cols-3 text-sm">
