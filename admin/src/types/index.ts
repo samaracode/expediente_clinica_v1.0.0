@@ -93,6 +93,33 @@ export interface AdmissionOut {
   created_at: string;
 }
 
+export type ConsentType =
+  | "INTERNMENT_SERVICE"
+  | "INTERNMENT"
+  | "SEARCH"
+  | "DRUG_TEST"
+  | "CCTV"
+  | "INFO_RELEASE"
+  | "WEAPONS"
+  | "IAFA_ACTIONS"
+  | "INDIVIDUAL_APPROACH"
+  | "REFERRAL"
+  | "RECORD_ACCESS"
+  | "RIGHTS_FOCUS"
+  | "LABOR"
+  | "NON_DISCRIMINATION"
+  | "SPONSOR"
+  | "MANUAL"
+  | "LABOR_PROVISION";
+
+export interface ConsentItem {
+  consent_type: ConsentType;
+  is_signed: boolean;
+  signed_at: string | null;
+  verified_by_user_id: number | null;
+  notes: string | null;
+}
+
 export interface AdmissionCreate {
   resident_id: number;
   admission_type?: AdmissionType;
