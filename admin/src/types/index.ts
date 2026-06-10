@@ -332,6 +332,35 @@ export interface TreatmentPlanOut {
   stages: TreatmentStageOut[];
 }
 
+export interface ConsultationOut {
+  id: number;
+  admission_id: number;
+  professional_id: number | null;
+  area_id: number | null;
+  consultation_type: string | null;
+  description: string | null;
+  observations: string | null;
+  consultation_date: string;
+  next_appointment_date: string | null;
+  professional_name: string | null;
+  area_name: string | null;
+}
+
+export interface RelativeOut {
+  id: number;
+  patient_relative_id: number;
+  relation_type: string;
+  id_number: string | null;
+  first_name: string;
+  last_name: string;
+  birthdate: string | null;
+  marital_status: string | null;
+  address: string | null;
+  judicial_situation: string | null;
+  phone: string | null;
+  education_level: string | null;
+}
+
 export interface AdmissionCreate {
   resident_id: number;
   admission_type?: AdmissionType;

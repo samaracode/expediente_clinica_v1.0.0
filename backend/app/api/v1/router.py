@@ -17,6 +17,8 @@ from app.api.v1 import (
     users,
     professionals,
     reports,
+    consultations,
+    relatives,
 )
 
 api_router = APIRouter()
@@ -37,3 +39,5 @@ api_router.include_router(daily_logs.router, prefix="/admissions", tags=["Daily 
 api_router.include_router(users.router, prefix="/users", tags=["Users"])
 api_router.include_router(professionals.router, prefix="/professionals", tags=["Professionals"])
 api_router.include_router(reports.router, prefix="/reports", tags=["Reports"])
+api_router.include_router(consultations.router, prefix="/admissions", tags=["Consultations"])
+api_router.include_router(relatives.router, prefix="/residents", tags=["Relatives"])

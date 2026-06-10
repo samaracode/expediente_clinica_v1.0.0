@@ -44,9 +44,14 @@ export default function ResidentProfilePage() {
               {resident.first_name} {resident.last_name}
             </h2>
           </div>
-          <Link href={`/residents/${id}/edit`}>
-            <Button variant="outline" size="sm">Editar</Button>
-          </Link>
+          <div className="flex items-center gap-2">
+            <Link href={`/residents/${id}/relatives`}>
+              <Button variant="outline" size="sm">Familiares</Button>
+            </Link>
+            <Link href={`/residents/${id}/edit`}>
+              <Button variant="outline" size="sm">Editar</Button>
+            </Link>
+          </div>
         </div>
         <dl className="grid grid-cols-2 gap-x-6 gap-y-3 sm:grid-cols-3 text-sm">
           <div><dt className="text-gray-400">Cédula</dt><dd className="text-gray-700 dark:text-white">{resident.id_number ?? "—"}</dd></div>

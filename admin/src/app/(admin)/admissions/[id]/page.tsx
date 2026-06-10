@@ -20,6 +20,7 @@ const SECTIONS: Array<{ key: string; label: string; href: (id: string) => string
   { key: "treatment_plan", label: "Plan de tratamiento", href: (id) => `/admissions/${id}/treatment-plan`, active: true },
   { key: "exit_passes", label: "Permisos de salida", href: (id) => `/admissions/${id}/exit-passes`, active: true },
   { key: "daily_logs", label: "Notas diarias", href: (id) => `/admissions/${id}/daily-logs`, active: true },
+  { key: "consultations", label: "Consultas de seguimiento", href: (id) => `/admissions/${id}/consultations`, active: true },
 ];
 
 const STATUS_LABELS: Record<string, string> = {
