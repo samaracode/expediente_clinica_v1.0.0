@@ -120,6 +120,21 @@ export interface ConsentItem {
   notes: string | null;
 }
 
+export interface PersonalItem {
+  description: string;
+  quantity: number;
+  condition: string | null;
+}
+
+export interface PersonalItemsInventoryOut {
+  id: number | null;
+  admission_id: number;
+  recorded_at: string | null;
+  recorded_by_user_id: number | null;
+  items: PersonalItem[];
+  notes: string | null;
+}
+
 export interface AdmissionCreate {
   resident_id: number;
   admission_type?: AdmissionType;

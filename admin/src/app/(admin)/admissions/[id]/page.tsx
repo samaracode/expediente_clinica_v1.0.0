@@ -10,6 +10,7 @@ import AdmissionStatusBadge from "@/components/residents/AdmissionStatusBadge";
 
 const SECTIONS: Array<{ key: string; label: string; href: (id: string) => string; active: boolean }> = [
   { key: "consents", label: "Consentimientos", href: (id) => `/admissions/${id}/consents`, active: true },
+  { key: "personal_items", label: "Inventario de pertenencias", href: (id) => `/admissions/${id}/personal-items`, active: true },
   { key: "medical", label: "Evaluación médica", href: () => "#", active: false },
   { key: "therapeutic", label: "Evaluación terapéutica", href: () => "#", active: false },
   { key: "social_work", label: "Trabajo social", href: () => "#", active: false },
