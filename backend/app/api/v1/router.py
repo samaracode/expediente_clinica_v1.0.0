@@ -19,6 +19,7 @@ from app.api.v1 import (
     reports,
     consultations,
     relatives,
+    export,
 )
 
 api_router = APIRouter()
@@ -41,3 +42,4 @@ api_router.include_router(professionals.router, prefix="/professionals", tags=["
 api_router.include_router(reports.router, prefix="/reports", tags=["Reports"])
 api_router.include_router(consultations.router, prefix="/admissions", tags=["Consultations"])
 api_router.include_router(relatives.router, prefix="/residents", tags=["Relatives"])
+api_router.include_router(export.router, prefix="/admissions", tags=["Export"])

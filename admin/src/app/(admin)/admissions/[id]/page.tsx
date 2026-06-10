@@ -84,8 +84,17 @@ export default function AdmissionHubPage() {
               </Link>
             )}
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <AdmissionStatusBadge status={admission.status} />
+            <button
+              onClick={() => window.open(`/api/v1/admissions/${id}/export/pdf`, "_blank")}
+              className="rounded px-3 py-1.5 text-xs font-medium border border-gray-300 text-gray-600 hover:bg-gray-50 flex items-center gap-1"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3M3 17v3a1 1 0 001 1h16a1 1 0 001-1v-3M3 17H1m2 0h18m0 0h2" />
+              </svg>
+              Exportar PDF
+            </button>
             {user?.role === "admin" && !admission.is_deleted && (
               confirmArchive ? (
                 <span className="flex items-center gap-1 text-sm">
