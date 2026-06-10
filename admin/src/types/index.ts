@@ -370,6 +370,14 @@ export interface ResidentPage {
   pages: number;
 }
 
+export interface NotificationItem {
+  type: "upcoming_appointment" | "overdue_exit_pass" | "upcoming_stage_end";
+  message: string;
+  entity_id: number;
+  entity_type: string;
+  due_date: string | null;
+}
+
 export interface AdmissionCreate {
   resident_id: number;
   admission_type?: AdmissionType;
