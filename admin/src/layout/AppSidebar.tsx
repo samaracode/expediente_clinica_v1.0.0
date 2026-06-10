@@ -42,6 +42,19 @@ const navItems: NavItem[] = [
     ],
   },
   {
+    icon: <PieChartIcon />,
+    name: "Reportes",
+    path: "/reports",
+  },
+  {
+    icon: <TaskIcon />,
+    name: "Administración",
+    subItems: [
+      { name: "Usuarios", path: "/admin/users" },
+      { name: "Profesionales", path: "/admin/professionals" },
+    ],
+  },
+  {
     icon: <GridIcon />,
     name: "Dashboard",
     subItems: [

@@ -228,6 +228,62 @@ export interface OccupationalTherapyAssessmentOut {
   completion_status: string;
 }
 
+export interface UserAdminOut {
+  id: number;
+  full_name: string;
+  email: string;
+  role: string;
+  is_active: boolean;
+  created_at: string | null;
+}
+
+export interface TreatmentAreaOut {
+  id: number;
+  name: string;
+  description: string | null;
+}
+
+export interface ProfessionalOut {
+  id: number;
+  user_id: number;
+  area_id: number;
+  first_name: string;
+  last_name: string;
+  specialty: string | null;
+  is_active: boolean;
+  area_name: string | null;
+  user_email: string | null;
+}
+
+export interface AdmissionReportRow {
+  id: number;
+  admission_number: string;
+  resident_name: string;
+  admission_date: string;
+  discharge_date: string | null;
+  status: string;
+  admission_type: string;
+}
+
+export interface ConsultationReportRow {
+  id: number;
+  consultation_date: string;
+  professional_name: string;
+  area_name: string | null;
+  consultation_type: string | null;
+  resident_name: string;
+}
+
+export interface TreatmentProgressRow {
+  admission_id: number;
+  admission_number: string;
+  resident_name: string;
+  status: string;
+  stages_completed: number;
+  stages_total: number;
+  current_stage: string | null;
+}
+
 export interface ExitPassOut {
   id: number;
   admission_id: number;
