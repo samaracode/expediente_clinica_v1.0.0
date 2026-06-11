@@ -134,10 +134,8 @@ function RelativeCard({
 
   return (
     <div className="rounded-xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03] overflow-hidden">
-      <button
-        type="button"
+      <div className="w-full px-5 py-4 flex items-start justify-between hover:bg-gray-50 dark:hover:bg-white/[0.02] transition-colors cursor-pointer"
         onClick={() => setExpanded((v) => !v)}
-        className="w-full text-left px-5 py-4 flex items-start justify-between hover:bg-gray-50 dark:hover:bg-white/[0.02] transition-colors"
       >
         <div>
           <p className="font-medium text-gray-800 dark:text-white">
@@ -149,19 +147,21 @@ function RelativeCard({
             {relative.phone && ` · ${relative.phone}`}
           </p>
         </div>
-        <div className="flex items-center gap-2 mt-1">
+        <div className="flex items-center gap-2 mt-1" onClick={(e) => e.stopPropagation()}>
           {confirmUnlink ? (
-            <span className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+            <span className="flex items-center gap-1">
               <span className="text-xs text-gray-400">¿Desvincular?</span>
               <button
-                onClick={(e) => { e.stopPropagation(); handleUnlink(); }}
+                type="button"
+                onClick={handleUnlink}
                 disabled={unlinking}
                 className="rounded px-2 py-0.5 text-xs font-medium bg-error-500 text-white hover:bg-error-600 disabled:opacity-50"
               >
                 {unlinking ? "..." : "Sí"}
               </button>
               <button
-                onClick={(e) => { e.stopPropagation(); setConfirmUnlink(false); }}
+                type="button"
+                onClick={() => setConfirmUnlink(false)}
                 className="rounded px-2 py-0.5 text-xs border border-gray-300 text-gray-500"
               >
                 No
@@ -170,7 +170,7 @@ function RelativeCard({
           ) : (
             <button
               type="button"
-              onClick={(e) => { e.stopPropagation(); setConfirmUnlink(true); }}
+              onClick={() => setConfirmUnlink(true)}
               className="text-xs text-error-500 hover:underline"
             >
               Desvincular
@@ -178,7 +178,7 @@ function RelativeCard({
           )}
           <span className="text-xs text-brand-500">{expanded ? "▲ Cerrar" : "▼ Editar"}</span>
         </div>
-      </button>
+      </div>
 
       {expanded && (
         <div className="px-5 pb-5 border-t border-gray-100 dark:border-gray-800 pt-4 space-y-4">
