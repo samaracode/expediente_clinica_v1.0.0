@@ -1,92 +1,63 @@
-from datetime import datetime, timezone
 from typing import List
-from fastapi import APIRouter, Depends, HTTPException, status
+
+from fastapi import APIRouter, Depends, status
 from sqlalchemy.orm import Session
 
-from app.core.deps import get_current_user, RoleRequired
+from app.core.deps import RoleRequired, get_current_user
 from app.db.session import get_db
-from app.models.admission import Admission
-from app.models.resident import Resident
 from app.models.user import User
 from app.schemas.admission import AdmissionCreate, AdmissionOut, AdmissionStatusUpdate
+from app.services.admission_service import AdmissionService
 
 router = APIRouter()
 _admin_only = RoleRequired(["admin"])
 
 
-def _generate_admission_number(db: Session) -> str:
-    count = db.query(Admission).count()
-    return f"ADM-{count + 1:05d}"
+def get_admission_service(db: Session = Depends(get_db)) -> AdmissionService:
+    return AdmissionService(db)
 
 
 @router.post("", response_model=AdmissionOut, status_code=status.HTTP_201_CREATED)
 def create_admission(
     data: AdmissionCreate,
-    db: Session = Depends(get_db),
+    service: AdmissionService = Depends(get_admission_service),
     _: User = Depends(get_current_user),
 ):
-    if not db.query(Resident).filter(Resident.id == data.resident_id).first():
-        raise HTTPException(status_code=404, detail="Residente no encontrado")
-    admission = Admission(**data.model_dump(), admission_number=_generate_admission_number(db))
-    db.add(admission)
-    db.commit()
-    db.refresh(admission)
-    return admission
+    return service.create(data)
 
 
 @router.get("/{admission_id}", response_model=AdmissionOut)
 def get_admission(
     admission_id: int,
-    db: Session = Depends(get_db),
+    service: AdmissionService = Depends(get_admission_service),
     _: User = Depends(get_current_user),
 ):
-    admission = db.query(Admission).filter(Admission.id == admission_id).first()
-    if not admission:
-        raise HTTPException(status_code=404, detail="Admisión no encontrada")
-    return admission
+    return service.get(admission_id)
 
 
 @router.get("/resident/{resident_id}", response_model=List[AdmissionOut])
 def get_resident_admissions(
     resident_id: int,
-    db: Session = Depends(get_db),
+    service: AdmissionService = Depends(get_admission_service),
     _: User = Depends(get_current_user),
 ):
-    if not db.query(Resident).filter(Resident.id == resident_id).first():
-        raise HTTPException(status_code=404, detail="Residente no encontrado")
-    return (
-        db.query(Admission)
-        .filter(Admission.resident_id == resident_id, Admission.is_deleted == False)  # noqa: E712
-        .order_by(Admission.created_at.desc())
-        .all()
-    )
+    return service.list_by_resident(resident_id)
 
 
 @router.delete("/{admission_id}", status_code=204)
 def archive_admission(
     admission_id: int,
-    db: Session = Depends(get_db),
+    service: AdmissionService = Depends(get_admission_service),
     _: User = Depends(_admin_only),
 ):
-    admission = db.query(Admission).filter(Admission.id == admission_id).first()
-    if not admission:
-        raise HTTPException(status_code=404, detail="Admisión no encontrada")
-    admission.is_deleted = True
-    admission.deleted_at = datetime.now(timezone.utc)
-    db.commit()
+    service.archive(admission_id)
 
 
 @router.put("/{admission_id}/status", response_model=AdmissionOut)
 def update_admission_status(
     admission_id: int,
     data: AdmissionStatusUpdate,
-    db: Session = Depends(get_db),
+    service: AdmissionService = Depends(get_admission_service),
     _: User = Depends(get_current_user),
 ):
-    admission = db.query(Admission).filter(Admission.id == admission_id).first()
-    if not admission:
-        raise HTTPException(status_code=404, detail="Admisión no encontrada")
-    admission.status = data.status
-    db.commit()
-    db.refresh(admission)
-    return admission
+    return service.update_status(admission_id, data)
