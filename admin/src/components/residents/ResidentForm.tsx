@@ -8,21 +8,31 @@ import Button from "@/components/ui/button/Button";
 import { apiFetch, ApiError } from "@/lib/api";
 import type { ResidentCreate, ResidentOut } from "@/types";
 
-export default function ResidentForm() {
+interface Props {
+  initialData?: ResidentOut;
+  residentId?: number;
+}
+
+export default function ResidentForm({ initialData, residentId }: Props) {
   const router = useRouter();
+  const isEdit = !!residentId;
+
   const [form, setForm] = useState<ResidentCreate>({
-    first_name: "",
-    last_name: "",
-    id_number: "",
-    phone_mobile: "",
+    first_name: initialData?.first_name ?? "",
+    last_name: initialData?.last_name ?? "",
+    id_number: initialData?.id_number ?? "",
+    birthdate: initialData?.birthdate ?? "",
+    sex: initialData?.sex ?? undefined,
+    marital_status: initialData?.marital_status ?? undefined,
+    phone_mobile: initialData?.phone_mobile ?? "",
     phone_home: "",
-    emergency_contact_name: "",
-    emergency_contact_phone: "",
-    nationality: "Costarricense",
-    province: "",
-    canton: "",
-    district: "",
-    is_insured: false,
+    emergency_contact_name: initialData?.emergency_contact_name ?? "",
+    emergency_contact_phone: initialData?.emergency_contact_phone ?? "",
+    nationality: initialData?.nationality ?? "Costarricense",
+    province: initialData?.province ?? "",
+    canton: initialData?.canton ?? "",
+    district: initialData?.district ?? "",
+    is_insured: initialData?.is_insured ?? false,
   });
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -36,13 +46,27 @@ export default function ResidentForm() {
     setError(null);
     setLoading(true);
     try {
-      const resident = await apiFetch<ResidentOut>("/residents", {
-        method: "POST",
-        body: JSON.stringify(form),
-      });
-      router.push(`/residents/${resident.id}`);
+      if (isEdit) {
+        await apiFetch<ResidentOut>(`/residents/${residentId}`, {
+          method: "PUT",
+          body: JSON.stringify(form),
+        });
+        router.push(`/residents/${residentId}`);
+      } else {
+        const resident = await apiFetch<ResidentOut>("/residents", {
+          method: "POST",
+          body: JSON.stringify(form),
+        });
+        router.push(`/residents/${resident.id}`);
+      }
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Error al crear residente");
+      setError(
+        err instanceof ApiError
+          ? err.message
+          : isEdit
+          ? "Error al actualizar residente"
+          : "Error al crear residente"
+      );
     } finally {
       setLoading(false);
     }
@@ -108,7 +132,7 @@ export default function ResidentForm() {
           Cancelar
         </Button>
         <Button type="submit" disabled={loading}>
-          {loading ? "Guardando..." : "Crear residente"}
+          {loading ? "Guardando..." : isEdit ? "Guardar cambios" : "Crear residente"}
         </Button>
       </div>
     </form>
