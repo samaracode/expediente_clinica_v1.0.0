@@ -11,3 +11,10 @@ from app.models.assessment import TherapeuticAssessment, SocialWorkAssessment, P
 from app.models.treatment import TreatmentPlan, TreatmentStage  # noqa: F401
 from app.models.follow_up import ExitPass, DailyLog, FamilyTherapySession, Consultation  # noqa: F401
 from app.models.audit import AuditLog, ProgramAbandonment, Complaint  # noqa: F401
+from app.models.medication import (  # noqa: F401
+    Medication,
+    MedicationOrder,
+    MedicationAdministration,
+    MedTimeSlot,
+    ResidentAllergy,
+)

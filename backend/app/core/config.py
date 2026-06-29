@@ -16,7 +16,19 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 480
     DATABASE_URL: str
 
-    # AWS
+    # Almacenamiento de archivos
+    # STORAGE_BACKEND: "local" para desarrollo (disco), "s3" para producción.
+    STORAGE_BACKEND: str = "local"
+    # Directorio raíz para almacenamiento local. Se crea automáticamente si no existe.
+    LOCAL_STORAGE_DIR: str = "/tmp/zoe_uploads"
+    # Tamaño máximo de archivo en MB (validación en upload endpoint).
+    MAX_UPLOAD_MB: int = 10
+
+    # Módulo de medicamentos
+    # Minutos de margen antes de marcar una toma scheduled como vencida
+    MED_OMITTED_MARGIN_MIN: int = 60
+
+    # AWS / S3
     AWS_ACCESS_KEY_ID: Optional[str] = None
     AWS_SECRET_ACCESS_KEY: Optional[str] = None
     AWS_REGION: str = "us-east-1"

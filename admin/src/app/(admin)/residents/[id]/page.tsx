@@ -3,12 +3,24 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { apiFetch } from "@/lib/api";
-import type { AdmissionOut, ResidentOut } from "@/types";
+import { apiFetch, ApiError } from "@/lib/api";
+import type { AdmissionOut, ResidentOut, ResidentAllergyOut, ResidentAllergyCreate, AllergySeverity } from "@/types";
 import PageBreadcrumb from "@/components/common/PageBreadCrumb";
 import Button from "@/components/ui/button/Button";
 import AdmissionStatusBadge from "@/components/residents/AdmissionStatusBadge";
 import { useAuth } from "@/context/AuthContext";
+
+const SEVERITY_LABELS: Record<AllergySeverity, string> = {
+  leve: "Leve",
+  moderada: "Moderada",
+  severa: "Severa",
+};
+
+const SEVERITY_BADGE: Record<AllergySeverity, string> = {
+  leve: "bg-warning-50 text-warning-700 dark:bg-warning-500/10 dark:text-warning-400",
+  moderada: "bg-orange-50 text-orange-700 dark:bg-orange-500/10 dark:text-orange-400",
+  severa: "bg-error-50 text-error-700 dark:bg-error-500/10 dark:text-error-400",
+};
 
 export default function ResidentProfilePage() {
   const { id } = useParams<{ id: string }>();
@@ -20,6 +32,16 @@ export default function ResidentProfilePage() {
   const [confirmArchive, setConfirmArchive] = useState(false);
   const [archiving, setArchiving] = useState(false);
 
+  // Alergias
+  const [allergies, setAllergies] = useState<ResidentAllergyOut[]>([]);
+  const [allergyError, setAllergyError] = useState<string | null>(null);
+  const [showAllergyForm, setShowAllergyForm] = useState(false);
+  const [newSubstance, setNewSubstance] = useState("");
+  const [newReaction, setNewReaction] = useState("");
+  const [newSeverity, setNewSeverity] = useState<AllergySeverity | "">("");
+  const [savingAllergy, setSavingAllergy] = useState(false);
+  const [deletingAllergyId, setDeletingAllergyId] = useState<number | null>(null);
+
   useEffect(() => {
     Promise.all([
       apiFetch<ResidentOut>(`/residents/${id}`),
@@ -27,7 +49,49 @@ export default function ResidentProfilePage() {
     ])
       .then(([r, a]) => { setResident(r); setAdmissions(a); })
       .finally(() => setLoading(false));
+
+    apiFetch<ResidentAllergyOut[]>(`/residents/${id}/allergies`)
+      .then(setAllergies)
+      .catch(() => {});
   }, [id]);
+
+  async function handleAddAllergy() {
+    if (!newSubstance.trim()) return;
+    setSavingAllergy(true);
+    setAllergyError(null);
+    try {
+      const payload: ResidentAllergyCreate = {
+        substance: newSubstance,
+        reaction: newReaction || undefined,
+        severity: newSeverity || undefined,
+      };
+      const created = await apiFetch<ResidentAllergyOut>(
+        `/residents/${id}/allergies`,
+        { method: "POST", body: JSON.stringify(payload) }
+      );
+      setAllergies((prev) => [...prev, created]);
+      setNewSubstance("");
+      setNewReaction("");
+      setNewSeverity("");
+      setShowAllergyForm(false);
+    } catch (err) {
+      setAllergyError(err instanceof ApiError ? err.message : "Error al guardar");
+    } finally {
+      setSavingAllergy(false);
+    }
+  }
+
+  async function handleDeleteAllergy(allergyId: number) {
+    setDeletingAllergyId(allergyId);
+    try {
+      await apiFetch(`/residents/${id}/allergies/${allergyId}`, { method: "DELETE" });
+      setAllergies((prev) => prev.filter((a) => a.id !== allergyId));
+    } catch (err) {
+      setAllergyError(err instanceof ApiError ? err.message : "Error al eliminar");
+    } finally {
+      setDeletingAllergyId(null);
+    }
+  }
 
   async function handleArchive() {
     setArchiving(true);
@@ -145,6 +209,127 @@ export default function ResidentProfilePage() {
                 ))}
               </tbody>
             </table>
+          </div>
+        )}
+      </div>
+
+      {/* Alergias */}
+      <div className="rounded-2xl border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-white/[0.03]">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-base font-semibold text-gray-800 dark:text-white">Alergias</h3>
+          {!showAllergyForm && (
+            <Button size="sm" variant="outline" onClick={() => setShowAllergyForm(true)}>
+              + Agregar alergia
+            </Button>
+          )}
+        </div>
+
+        {allergyError && (
+          <p className="mb-3 text-sm text-error-500">{allergyError}</p>
+        )}
+
+        {allergies.length === 0 && !showAllergyForm ? (
+          <p className="text-sm text-gray-400">Sin alergias registradas.</p>
+        ) : (
+          <div className="space-y-2">
+            {allergies.map((allergy) => (
+              <div
+                key={allergy.id}
+                className="flex items-center justify-between rounded-lg border border-gray-100 px-4 py-3 dark:border-gray-800"
+              >
+                <div>
+                  <span className="text-sm font-medium text-gray-800 dark:text-white">
+                    {allergy.substance}
+                  </span>
+                  {allergy.reaction && (
+                    <span className="ml-2 text-sm text-gray-500">— {allergy.reaction}</span>
+                  )}
+                  {allergy.severity && (
+                    <span
+                      className={`ml-2 inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${SEVERITY_BADGE[allergy.severity]}`}
+                    >
+                      {SEVERITY_LABELS[allergy.severity]}
+                    </span>
+                  )}
+                </div>
+                <button
+                  onClick={() => handleDeleteAllergy(allergy.id)}
+                  disabled={deletingAllergyId === allergy.id}
+                  className="ml-4 text-xs text-error-500 hover:underline disabled:opacity-50"
+                >
+                  {deletingAllergyId === allergy.id ? "Eliminando..." : "Eliminar"}
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {showAllergyForm && (
+          <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-gray-800/40 space-y-3">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+              <div>
+                <label className="mb-1 block text-xs font-medium text-gray-500">
+                  Sustancia <span className="text-error-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  placeholder="Ej: Penicilina"
+                  value={newSubstance}
+                  onChange={(e) => setNewSubstance(e.target.value)}
+                  className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm outline-none focus:border-brand-500 dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+                />
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-medium text-gray-500">
+                  Reacción
+                </label>
+                <input
+                  type="text"
+                  placeholder="Ej: urticaria, anafilaxia"
+                  value={newReaction}
+                  onChange={(e) => setNewReaction(e.target.value)}
+                  className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm outline-none focus:border-brand-500 dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+                />
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-medium text-gray-500">
+                  Severidad
+                </label>
+                <select
+                  value={newSeverity}
+                  onChange={(e) => setNewSeverity(e.target.value as AllergySeverity | "")}
+                  className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm outline-none focus:border-brand-500 dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+                >
+                  <option value="">Sin especificar</option>
+                  <option value="leve">Leve</option>
+                  <option value="moderada">Moderada</option>
+                  <option value="severa">Severa</option>
+                </select>
+              </div>
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  setShowAllergyForm(false);
+                  setNewSubstance("");
+                  setNewReaction("");
+                  setNewSeverity("");
+                  setAllergyError(null);
+                }}
+                disabled={savingAllergy}
+              >
+                Cancelar
+              </Button>
+              <Button
+                size="sm"
+                onClick={handleAddAllergy}
+                disabled={savingAllergy || !newSubstance.trim()}
+              >
+                {savingAllergy ? "Guardando..." : "Guardar alergia"}
+              </Button>
+            </div>
           </div>
         )}
       </div>

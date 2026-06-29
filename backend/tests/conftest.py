@@ -24,6 +24,7 @@ import app.models.consent  # noqa: F401
 import app.models.medical  # noqa: F401
 import app.models.assessment  # noqa: F401
 import app.models.audit  # noqa: F401
+import app.models.medication  # noqa: F401
 
 from app.models.user import User, UserRole
 from app.models.resident import Resident

@@ -64,6 +64,8 @@ class Admission(Base):
     consultations = relationship("Consultation", back_populates="admission")
     program_abandonment = relationship("ProgramAbandonment", back_populates="admission", uselist=False)
     complaints = relationship("Complaint", back_populates="admission")
+    medication_orders = relationship("MedicationOrder", back_populates="admission")
+    medication_administrations = relationship("MedicationAdministration", back_populates="admission")
 
 
 class EconomicSituation(Base):

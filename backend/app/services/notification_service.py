@@ -1,11 +1,18 @@
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta, timezone
 from typing import Optional
 
 from pydantic import BaseModel
 from sqlalchemy.orm import Session, joinedload
 
+from app.core.config import settings
 from app.models.admission import Admission
 from app.models.follow_up import Consultation, ExitPass, PassStatus
+from app.models.medication import (
+    AdministrationStatus,
+    MedicationAdministration,
+    MedicationOrder,
+    Medication,
+)
 from app.models.resident import Resident
 from app.models.treatment import TreatmentPlan, TreatmentStage, StageStatus
 
@@ -107,6 +114,44 @@ class NotificationService:
                     due_date=str(stage.end_date),
                 )
             )
+
+        # Dosis omitidas: tomas pending cuyo scheduled_at + margen ya pasó
+        now_utc = datetime.now(timezone.utc)
+        margin = timedelta(minutes=settings.MED_OMITTED_MARGIN_MIN)
+        pending_adms = (
+            self.db.query(MedicationAdministration)
+            .join(MedicationOrder, MedicationAdministration.order_id == MedicationOrder.id)
+            .join(Medication, MedicationOrder.medication_id == Medication.id)
+            .join(Admission, MedicationAdministration.admission_id == Admission.id)
+            .join(Resident, Admission.resident_id == Resident.id)
+            .options(
+                joinedload(MedicationAdministration.order).joinedload(MedicationOrder.medication),
+                joinedload(MedicationAdministration.admission).joinedload(Admission.resident),
+            )
+            .filter(
+                MedicationAdministration.status == AdministrationStatus.pending,
+                MedicationAdministration.scheduled_at != None,  # noqa: E711
+            )
+            .order_by(MedicationAdministration.scheduled_at.asc())
+            .all()
+        )
+        for adm in pending_adms:
+            # Normalizar a aware para comparar correctamente (SQLite devuelve naive)
+            scheduled = adm.scheduled_at
+            if scheduled.tzinfo is None:
+                scheduled = scheduled.replace(tzinfo=timezone.utc)
+            if (scheduled + margin) < now_utc:
+                medication_name = adm.order.medication.name
+                resident = adm.admission.resident
+                results.append(
+                    Notification(
+                        type="overdue_medication",
+                        message=f"Dosis vencida: {medication_name} de {resident.first_name} {resident.last_name}",
+                        entity_id=adm.admission_id,
+                        entity_type="medication_administration",
+                        due_date=str(scheduled.date()),
+                    )
+                )
 
         results.sort(key=lambda n: n.due_date or "9999-99-99")
         return results

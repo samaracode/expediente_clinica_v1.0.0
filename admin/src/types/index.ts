@@ -393,3 +393,180 @@ export interface AdmissionCreate {
   judicial_status?: string;
   has_support_network?: boolean;
 }
+
+// ---------------------------------------------------------------------------
+// MAR — Módulo de Administración de Medicamentos
+// ---------------------------------------------------------------------------
+
+export type MedicationRoute = "oral" | "IM" | "SC" | "otra";
+export type ScheduleType = "scheduled" | "prn";
+export type OrderStatus = "active" | "suspended" | "finished";
+export type AdministrationStatus = "pending" | "taken" | "refused" | "omitted";
+export type AllergySeverity = "leve" | "moderada" | "severa";
+
+export interface MedicationOut {
+  id: number;
+  name: string;
+  form: string | null;
+  strength: string | null;
+  is_controlled: boolean;
+  notes: string | null;
+}
+
+export interface MedicationCreate {
+  name: string;
+  form?: string;
+  strength?: string;
+  is_controlled?: boolean;
+  notes?: string;
+}
+
+export interface MedicationOrderOut {
+  id: number;
+  admission_id: number;
+  medication_id: number;
+  dose: string;
+  route: MedicationRoute;
+  schedule_type: ScheduleType;
+  times: string[] | null;
+  frequency_text: string | null;
+  prn_reason: string | null;
+  start_date: string;
+  end_date: string | null;
+  prescribed_by_external: string | null;
+  prescriber_institution: string | null;
+  transcribed_by_user_id: number | null;
+  receta_file_id: number | null;
+  is_controlled: boolean;
+  status: OrderStatus;
+  notes: string | null;
+  created_at: string | null;
+}
+
+export interface MedicationOrderCreate {
+  admission_id: number;
+  medication_id: number;
+  dose: string;
+  route: MedicationRoute;
+  schedule_type: ScheduleType;
+  times?: string[];
+  frequency_text?: string;
+  prn_reason?: string;
+  start_date: string;
+  end_date?: string;
+  prescribed_by_external?: string;
+  prescriber_institution?: string;
+  transcribed_by_user_id?: number;
+  receta_file_id?: number;
+  is_controlled?: boolean;
+  notes?: string;
+}
+
+export interface MedicationOrderPatch {
+  dose?: string;
+  route?: MedicationRoute;
+  schedule_type?: ScheduleType;
+  times?: string[];
+  frequency_text?: string;
+  prn_reason?: string;
+  start_date?: string;
+  end_date?: string;
+  prescribed_by_external?: string;
+  prescriber_institution?: string;
+  transcribed_by_user_id?: number;
+  receta_file_id?: number;
+  is_controlled?: boolean;
+  status?: OrderStatus;
+  notes?: string;
+}
+
+export interface AdministrationRecord {
+  status: AdministrationStatus;
+  administered_at?: string;
+  witness_user_id?: number;
+  reason?: string;
+  notes?: string;
+}
+
+export interface PRNRecord {
+  reason: string;
+  administered_at?: string;
+  witness_user_id?: number;
+  notes?: string;
+}
+
+export interface MedicationAdministrationOut {
+  id: number;
+  order_id: number;
+  admission_id: number;
+  scheduled_at: string | null;
+  status: AdministrationStatus;
+  administered_at: string | null;
+  administered_by_user_id: number | null;
+  witness_user_id: number | null;
+  reason: string | null;
+  notes: string | null;
+  created_at: string | null;
+  is_overdue: boolean;
+}
+
+export interface AllergyBrief {
+  id: number;
+  substance: string;
+  severity: AllergySeverity | null;
+}
+
+export interface PassEntryOut {
+  administration_id: number;
+  order_id: number;
+  admission_id: number;
+  resident_id: number;
+  resident_name: string;
+  medication_name: string;
+  dose: string;
+  route: MedicationRoute;
+  is_controlled: boolean;
+  scheduled_at: string | null;
+  slot_label: string | null;
+  status: AdministrationStatus;
+  administered_at: string | null;
+  administered_by_user_id: number | null;
+  witness_user_id: number | null;
+  reason: string | null;
+  notes: string | null;
+  is_overdue: boolean;
+  allergies: AllergyBrief[];
+}
+
+export interface DailyPassOut {
+  date: string;
+  entries: PassEntryOut[];
+}
+
+export interface MedTimeSlotOut {
+  id: number;
+  label: string;
+  time: string;
+  sort_order: number;
+}
+
+export interface ResidentAllergyOut {
+  id: number;
+  resident_id: number;
+  substance: string;
+  reaction: string | null;
+  severity: AllergySeverity | null;
+}
+
+export interface ResidentAllergyCreate {
+  substance: string;
+  reaction?: string;
+  severity?: AllergySeverity;
+}
+
+export interface FileUploadOut {
+  id: number;
+  file_name: string;
+  mime_type: string | null;
+  url: string;
+}

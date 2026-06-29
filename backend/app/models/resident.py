@@ -60,6 +60,7 @@ class Resident(Base):
     family_members = relationship("FamilyMember", back_populates="resident")
     education_records = relationship("EducationRecord", back_populates="resident")
     patient_relatives = relationship("PatientRelative", back_populates="resident")
+    allergies = relationship("ResidentAllergy", back_populates="resident")
 
 
 class FamilyMember(Base):

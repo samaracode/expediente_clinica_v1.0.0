@@ -19,6 +19,7 @@ const SECTIONS: Array<{ key: string; label: string; href: (id: string) => string
   { key: "psychology", label: "Psicología", href: (id) => `/admissions/${id}/psychology`, active: true, restrictedPath: "/psychology" },
   { key: "occupational_therapy", label: "Terapia ocupacional", href: (id) => `/admissions/${id}/occupational-therapy`, active: true, restrictedPath: "/occupational-therapy" },
   { key: "treatment_plan", label: "Plan de tratamiento", href: (id) => `/admissions/${id}/treatment-plan`, active: true },
+  { key: "medications", label: "Medicamentos", href: (id) => `/admissions/${id}/medications`, active: true },
   { key: "exit_passes", label: "Permisos de salida", href: (id) => `/admissions/${id}/exit-passes`, active: true },
   { key: "daily_logs", label: "Notas diarias", href: (id) => `/admissions/${id}/daily-logs`, active: true },
   { key: "consultations", label: "Consultas de seguimiento", href: (id) => `/admissions/${id}/consultations`, active: true },

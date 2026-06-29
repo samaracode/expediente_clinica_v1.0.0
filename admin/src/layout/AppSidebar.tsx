@@ -43,6 +43,13 @@ const navItems: NavItem[] = [
     ],
   },
   {
+    icon: <ListIcon />,
+    name: "Operación",
+    subItems: [
+      { name: "Pase de medicamentos", path: "/operations/medications" },
+    ],
+  },
+  {
     icon: <PieChartIcon />,
     name: "Reportes",
     path: "/reports",
