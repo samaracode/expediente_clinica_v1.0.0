@@ -19,3 +19,4 @@ from app.models.medication import (  # noqa: F401
     ResidentAllergy,
 )
 from app.models.attendance import AttendanceRollCall, AttendanceEntry  # noqa: F401
+from app.models.occupancy import ClinicSetting, WaitlistEntry  # noqa: F401

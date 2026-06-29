@@ -572,6 +572,55 @@ export interface FileUploadOut {
 }
 
 // ---------------------------------------------------------------------------
+// Ocupación + Lista de espera
+// ---------------------------------------------------------------------------
+
+export interface OccupancyOut {
+  capacity: number;
+  occupied: number;
+  available: number;
+  by_status: Record<string, number>;
+}
+
+export interface CapacityOut {
+  capacity: number;
+}
+
+export type WaitlistStatus = "waiting" | "admitted" | "declined" | "cancelled";
+
+export interface WaitlistEntryOut {
+  id: number;
+  full_name: string;
+  contact_phone: string | null;
+  contact_email: string | null;
+  requested_at: string | null;
+  referred_by: string | null;
+  status: WaitlistStatus;
+  notes: string | null;
+  created_by_user_id: number | null;
+  created_at: string | null;
+}
+
+export interface WaitlistEntryCreate {
+  full_name: string;
+  contact_phone?: string;
+  contact_email?: string;
+  requested_at?: string;
+  referred_by?: string;
+  notes?: string;
+}
+
+export interface WaitlistEntryPatch {
+  full_name?: string;
+  contact_phone?: string;
+  contact_email?: string;
+  requested_at?: string;
+  referred_by?: string;
+  status?: WaitlistStatus;
+  notes?: string;
+}
+
+// ---------------------------------------------------------------------------
 // Asistencia — Módulo de presencia física (a nivel centro)
 // ---------------------------------------------------------------------------
 

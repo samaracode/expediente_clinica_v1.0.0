@@ -32,6 +32,7 @@ from app.api.v1.medications import (
     administrations_router,
 )
 from app.api.v1.attendance import attendance_router, admissions_attendance_router
+from app.api.v1.occupancy import occupancy_router, waitlist_router, settings_capacity_router
 
 api_router = APIRouter()
 api_router.include_router(auth.router, prefix="/auth", tags=["Auth"])
@@ -68,3 +69,8 @@ api_router.include_router(medication_slots.router, prefix="/settings", tags=["Se
 # Módulo de Asistencia — Fase 2
 api_router.include_router(attendance_router, prefix="/attendance", tags=["Attendance"])
 api_router.include_router(admissions_attendance_router, prefix="/admissions", tags=["Attendance"])
+
+# Módulo de Ocupación + Lista de espera — Fase 3
+api_router.include_router(occupancy_router, prefix="/occupancy", tags=["Occupancy"])
+api_router.include_router(waitlist_router, prefix="/waitlist", tags=["Waitlist"])
+api_router.include_router(settings_capacity_router, prefix="/settings", tags=["Settings"])
