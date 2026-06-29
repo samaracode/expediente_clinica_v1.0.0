@@ -31,6 +31,7 @@ from app.api.v1.medications import (
     orders_router,
     administrations_router,
 )
+from app.api.v1.attendance import attendance_router, admissions_attendance_router
 
 api_router = APIRouter()
 api_router.include_router(auth.router, prefix="/auth", tags=["Auth"])
@@ -63,3 +64,7 @@ api_router.include_router(orders_router, prefix="/medication-orders", tags=["Med
 api_router.include_router(administrations_router, prefix="/medication-administrations", tags=["Medication Administrations"])
 api_router.include_router(allergies.router, prefix="/residents", tags=["Allergies"])
 api_router.include_router(medication_slots.router, prefix="/settings", tags=["Settings"])
+
+# Módulo de Asistencia — Fase 2
+api_router.include_router(attendance_router, prefix="/attendance", tags=["Attendance"])
+api_router.include_router(admissions_attendance_router, prefix="/admissions", tags=["Attendance"])

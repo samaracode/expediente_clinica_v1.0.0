@@ -570,3 +570,82 @@ export interface FileUploadOut {
   mime_type: string | null;
   url: string;
 }
+
+// ---------------------------------------------------------------------------
+// Asistencia — Módulo de presencia física (a nivel centro)
+// ---------------------------------------------------------------------------
+
+export type PresenceStatus =
+  | "present"
+  | "on_pass"
+  | "external_appointment"
+  | "hospitalized"
+  | "absent_without_leave"
+  | "discharged";
+
+export type Shift = "morning" | "afternoon" | "night";
+
+export interface RosterEntryOut {
+  admission_id: number;
+  resident_id: number;
+  resident_name: string;
+  expected_status: PresenceStatus;
+  actual_status: PresenceStatus | null;
+  note: string | null;
+  entry_id: number | null;
+}
+
+export interface RosterOut {
+  date: string;
+  shift: Shift;
+  roll_call_id: number | null;
+  conducted_by_user_id: number | null;
+  conducted_at: string | null;
+  notes: string | null;
+  entries: RosterEntryOut[];
+}
+
+export interface AttendanceEntryIn {
+  admission_id: number;
+  expected_status: PresenceStatus;
+  actual_status: PresenceStatus;
+  note?: string;
+}
+
+export interface RollCallCreate {
+  date: string;
+  shift: Shift;
+  notes?: string;
+  entries: AttendanceEntryIn[];
+}
+
+export interface AttendanceEntryOut {
+  id: number;
+  roll_call_id: number;
+  admission_id: number;
+  expected_status: PresenceStatus;
+  actual_status: PresenceStatus;
+  note: string | null;
+}
+
+export interface RollCallOut {
+  id: number;
+  date: string;
+  shift: Shift;
+  conducted_by_user_id: number | null;
+  conducted_at: string | null;
+  notes: string | null;
+  entries: AttendanceEntryOut[];
+}
+
+export interface AttendanceSummaryOut {
+  date: string;
+  source: "roll_call" | "expected";
+  total: number;
+  present: number;
+  on_pass: number;
+  external_appointment: number;
+  hospitalized: number;
+  absent_without_leave: number;
+  discharged: number;
+}

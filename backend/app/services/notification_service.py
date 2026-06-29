@@ -15,6 +15,7 @@ from app.models.medication import (
 )
 from app.models.resident import Resident
 from app.models.treatment import TreatmentPlan, TreatmentStage, StageStatus
+from app.models.attendance import AttendanceEntry, AttendanceRollCall, PresenceStatus
 
 
 class Notification(BaseModel):
@@ -150,6 +151,39 @@ class NotificationService:
                         entity_id=adm.admission_id,
                         entity_type="medication_administration",
                         due_date=str(scheduled.date()),
+                    )
+                )
+
+        # Ausentes sin permiso: entries del último roll-call del día de HOY con actual_status = absent_without_leave
+        today = date.today()
+        latest_roll_call = (
+            self.db.query(AttendanceRollCall)
+            .filter(AttendanceRollCall.date == today)
+            .order_by(AttendanceRollCall.conducted_at.desc())
+            .first()
+        )
+        if latest_roll_call:
+            awol_entries = (
+                self.db.query(AttendanceEntry)
+                .join(Admission, AttendanceEntry.admission_id == Admission.id)
+                .join(Resident, Admission.resident_id == Resident.id)
+                .options(
+                    joinedload(AttendanceEntry.admission).joinedload(Admission.resident)
+                )
+                .filter(
+                    AttendanceEntry.roll_call_id == latest_roll_call.id,
+                    AttendanceEntry.actual_status == PresenceStatus.absent_without_leave,
+                )
+                .all()
+            )
+            for entry in awol_entries:
+                resident = entry.admission.resident
+                results.append(
+                    Notification(
+                        type="absent_without_leave",
+                        message=f"Ausente sin permiso: {resident.first_name} {resident.last_name}",
+                        entity_id=entry.admission_id,
+                        entity_type="attendance",
                     )
                 )
 
