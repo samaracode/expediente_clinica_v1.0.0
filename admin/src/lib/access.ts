@@ -7,6 +7,10 @@ const ROUTE_RULES: Array<{ test: (path: string) => boolean; roles: UserRole[] }>
     roles: ["admin"],
   },
   {
+    test: (p) => /\/finance(\/|$)/.test(p),
+    roles: ["admin", "receptionist"],
+  },
+  {
     test: (p) => /\/medical(\/|$)/.test(p),
     roles: ["admin", "medical", "counselor"],
   },

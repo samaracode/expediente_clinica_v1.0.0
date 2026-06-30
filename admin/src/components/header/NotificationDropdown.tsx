@@ -25,6 +25,21 @@ const TYPE_CONFIG: Record<
     color: "text-warning-600 bg-warning-50 dark:bg-warning-900/20",
     linkPath: (id) => `/admissions/${id}/treatment-plan`,
   },
+  overdue_medication: {
+    icon: "💊",
+    color: "text-error-600 bg-error-50 dark:bg-error-900/20",
+    linkPath: (id) => `/admissions/${id}/medications`,
+  },
+  absent_without_leave: {
+    icon: "🚨",
+    color: "text-error-600 bg-error-50 dark:bg-error-900/20",
+    linkPath: (id) => `/admissions/${id}`,
+  },
+  overdue_balance: {
+    icon: "₡",
+    color: "text-orange-600 bg-orange-50 dark:bg-orange-900/20",
+    linkPath: (id) => `/admissions/${id}/finance`,
+  },
 };
 
 export default function NotificationDropdown() {

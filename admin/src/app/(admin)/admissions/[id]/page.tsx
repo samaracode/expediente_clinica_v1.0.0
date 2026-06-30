@@ -24,6 +24,7 @@ const SECTIONS: Array<{ key: string; label: string; href: (id: string) => string
   { key: "daily_logs", label: "Notas diarias", href: (id) => `/admissions/${id}/daily-logs`, active: true },
   { key: "consultations", label: "Consultas de seguimiento", href: (id) => `/admissions/${id}/consultations`, active: true },
   { key: "attendance", label: "Historial de asistencia", href: (id) => `/admissions/${id}/attendance`, active: true },
+  { key: "finance", label: "Control financiero", href: (id) => `/admissions/${id}/finance`, active: true, restrictedPath: "/finance" },
 ];
 
 const STATUS_LABELS: Record<string, string> = {

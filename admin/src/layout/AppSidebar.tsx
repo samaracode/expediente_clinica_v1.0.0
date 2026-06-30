@@ -53,6 +53,13 @@ const navItems: NavItem[] = [
     ],
   },
   {
+    icon: <TableIcon />,
+    name: "Finanzas",
+    subItems: [
+      { name: "Resumen y morosidad", path: "/finance" },
+    ],
+  },
+  {
     icon: <PieChartIcon />,
     name: "Reportes",
     path: "/reports",
@@ -254,8 +261,10 @@ const AppSidebar: React.FC = () => {
   const { user } = useAuth();
   const isAdmin = user?.role === "admin";
 
+  const isFinanceUser = isAdmin || user?.role === "receptionist";
   const visibleNavItems = navItems.filter((item) => {
     if (item.name === "Administración") return isAdmin;
+    if (item.name === "Finanzas") return isFinanceUser;
     return true;
   });
 

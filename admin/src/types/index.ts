@@ -371,7 +371,13 @@ export interface ResidentPage {
 }
 
 export interface NotificationItem {
-  type: "upcoming_appointment" | "overdue_exit_pass" | "upcoming_stage_end";
+  type:
+    | "upcoming_appointment"
+    | "overdue_exit_pass"
+    | "upcoming_stage_end"
+    | "overdue_medication"
+    | "absent_without_leave"
+    | "overdue_balance";
   message: string;
   entity_id: number;
   entity_type: string;
@@ -792,4 +798,100 @@ export interface ShiftTaskPatch {
   description?: string;
   due_at?: string | null;
   is_done?: boolean;
+}
+
+// ---------------------------------------------------------------------------
+// Control Financiero (cuentas por cobrar)
+// ---------------------------------------------------------------------------
+
+export type AgreementType = "monthly" | "fixed_total" | "scholarship_full" | "scholarship_partial";
+export type PaymentMethod = "cash" | "sinpe" | "transfer" | "check" | "other";
+export type PayerType = "family" | "iafa" | "imas" | "church" | "donor" | "other";
+
+export interface PaymentAgreementOut {
+  id: number;
+  admission_id: number;
+  agreement_type: AgreementType;
+  amount: number;
+  billing_day: number | null;
+  notes: string | null;
+  is_active: boolean;
+  created_at: string | null;
+}
+
+export interface PaymentAgreementUpsert {
+  agreement_type: AgreementType;
+  amount: number;
+  billing_day?: number | null;
+  notes?: string | null;
+  is_active?: boolean;
+}
+
+export interface ChargeOut {
+  id: number;
+  admission_id: number;
+  concept: string;
+  amount: number;
+  charge_date: string;
+  period: string | null;
+  is_auto: boolean;
+  created_by_user_id: number | null;
+  notes: string | null;
+  created_at: string | null;
+}
+
+export interface ChargeCreate {
+  concept: string;
+  amount: number;
+  charge_date: string;
+  period?: string | null;
+  notes?: string | null;
+}
+
+export interface PaymentOut {
+  id: number;
+  admission_id: number;
+  amount: number;
+  payment_date: string;
+  method: PaymentMethod;
+  payer_type: PayerType;
+  payer_name: string | null;
+  reference: string | null;
+  receipt_number: number;
+  received_by_user_id: number | null;
+  notes: string | null;
+  created_at: string | null;
+}
+
+export interface PaymentCreate {
+  amount: number;
+  payment_date: string;
+  method: PaymentMethod;
+  payer_type: PayerType;
+  payer_name?: string | null;
+  reference?: string | null;
+  received_by_user_id?: number | null;
+  notes?: string | null;
+}
+
+export interface AccountOut {
+  charges: ChargeOut[];
+  payments: PaymentOut[];
+  balance: number;
+}
+
+export interface OverdueEntryOut {
+  admission_id: number;
+  resident_name: string;
+  balance: number;
+  oldest_charge_date: string;
+  days_overdue: number;
+}
+
+export interface FinanceOverviewOut {
+  period: string;
+  total_received: number;
+  by_payer_type: Record<string, number>;
+  overdue_count: number;
+  overdue_total: number;
 }
