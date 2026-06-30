@@ -228,6 +228,34 @@ class TestOverdueMedicationNotification:
         assert len(overdue) == 1
         assert "Dosis vencida:" in overdue[0].message
 
+    def test_overdue_medication_excludes_inactive_admissions(
+        self, db, make_admission, make_medication, make_order
+    ):
+        # Dosis vencida de un residente EGRESADO no debe notificar;
+        # la de un residente activo sí.
+        past = datetime.now(timezone.utc) - timedelta(hours=2)
+
+        discharged = make_admission(status=AdmissionStatus.discharged)
+        d_order = make_order(admission=discharged)
+        db.add(MedicationAdministration(
+            order_id=d_order.id, admission_id=discharged.id,
+            scheduled_at=past, status=AdministrationStatus.pending,
+        ))
+
+        active = make_admission(status=AdmissionStatus.treatment_active)
+        a_order = make_order(admission=active)
+        db.add(MedicationAdministration(
+            order_id=a_order.id, admission_id=active.id,
+            scheduled_at=past, status=AdministrationStatus.pending,
+        ))
+        db.commit()
+
+        notifications = NotificationService(db).get_notifications()
+        overdue = [n for n in notifications if n.type == "overdue_medication"]
+
+        assert len(overdue) == 1
+        assert overdue[0].entity_id == active.id
+
     def test_overdue_medication_not_included_within_margin(
         self, db, make_admission, make_medication, make_order
     ):

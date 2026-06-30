@@ -5,7 +5,7 @@ from pydantic import BaseModel
 from sqlalchemy.orm import Session, joinedload
 
 from app.core.config import settings
-from app.models.admission import Admission
+from app.models.admission import Admission, AdmissionStatus
 from app.models.follow_up import Consultation, ExitPass, PassStatus
 from app.models.medication import (
     AdministrationStatus,
@@ -132,6 +132,15 @@ class NotificationService:
             .filter(
                 MedicationAdministration.status == AdministrationStatus.pending,
                 MedicationAdministration.scheduled_at != None,  # noqa: E711
+                # Solo admisiones activas: evita ruido por residentes egresados/abandonados
+                # con tomas viejas que quedaron pending.
+                Admission.status.in_(
+                    [
+                        AdmissionStatus.consents_pending,
+                        AdmissionStatus.assessment_in_progress,
+                        AdmissionStatus.treatment_active,
+                    ]
+                ),
             )
             .order_by(MedicationAdministration.scheduled_at.asc())
             .all()
