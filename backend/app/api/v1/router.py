@@ -79,3 +79,15 @@ api_router.include_router(settings_capacity_router, prefix="/settings", tags=["S
 from app.api.v1 import handover
 api_router.include_router(handover.router, prefix="/shift-handovers", tags=["Handovers"])
 api_router.include_router(handover.tasks_router, prefix="/shift-tasks", tags=["Handovers"])
+
+# Módulo de Control Financiero — Fase 5
+from app.api.v1.finance import (
+    admissions_finance_router,
+    charges_router,
+    finance_router,
+    payments_router,
+)
+api_router.include_router(admissions_finance_router, prefix="/admissions", tags=["Finance"])
+api_router.include_router(charges_router, prefix="/charges", tags=["Finance"])
+api_router.include_router(payments_router, prefix="/payments", tags=["Finance"])
+api_router.include_router(finance_router, prefix="/finance", tags=["Finance"])

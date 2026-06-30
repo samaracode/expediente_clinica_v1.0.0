@@ -1,4 +1,5 @@
 from datetime import date, datetime, timedelta, timezone
+from decimal import Decimal
 from typing import Optional
 
 from pydantic import BaseModel
@@ -6,6 +7,7 @@ from sqlalchemy.orm import Session, joinedload
 
 from app.core.config import settings
 from app.models.admission import Admission, AdmissionStatus
+from app.models.finance import Charge, Payment
 from app.models.follow_up import Consultation, ExitPass, PassStatus
 from app.models.medication import (
     AdministrationStatus,
@@ -16,6 +18,8 @@ from app.models.medication import (
 from app.models.resident import Resident
 from app.models.treatment import TreatmentPlan, TreatmentStage, StageStatus
 from app.models.attendance import AttendanceEntry, AttendanceRollCall, PresenceStatus
+
+OVERDUE_MARGIN_DAYS = 30
 
 
 class Notification(BaseModel):
@@ -195,6 +199,49 @@ class NotificationService:
                         entity_type="attendance",
                     )
                 )
+
+        # Saldo moroso: admisiones activas con balance > 0 y cargo más viejo > 30 días
+        cutoff = today - timedelta(days=OVERDUE_MARGIN_DAYS)
+        active_statuses = [
+            AdmissionStatus.consents_pending,
+            AdmissionStatus.assessment_in_progress,
+            AdmissionStatus.treatment_active,
+        ]
+        active_admissions = (
+            self.db.query(Admission)
+            .options(
+                joinedload(Admission.resident),
+                joinedload(Admission.charges),
+                joinedload(Admission.payments),
+            )
+            .filter(
+                Admission.status.in_(active_statuses),
+                Admission.is_deleted == False,  # noqa: E712
+            )
+            .all()
+        )
+        for admission in active_admissions:
+            if not admission.charges:
+                continue
+            balance = sum((c.amount for c in admission.charges), Decimal(0)) - sum(
+                (p.amount for p in admission.payments), Decimal(0)
+            )
+            if balance <= 0:
+                continue
+            oldest = min(c.charge_date for c in admission.charges)
+            if oldest > cutoff:
+                continue
+            resident = admission.resident
+            days_late = (today - oldest).days
+            results.append(
+                Notification(
+                    type="overdue_balance",
+                    message=f"Saldo moroso ({days_late} días): {resident.first_name} {resident.last_name}",
+                    entity_id=admission.id,
+                    entity_type="finance",
+                    due_date=str(oldest),
+                )
+            )
 
         results.sort(key=lambda n: n.due_date or "9999-99-99")
         return results
