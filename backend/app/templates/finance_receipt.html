@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Recibo de Pago #{{ "%05d"|format(payment.receipt_number) }}</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: Arial, Helvetica, sans-serif; font-size: 10pt; color: #1a1a1a; line-height: 1.4; }
+  .page { padding: 16mm 18mm; max-width: 148mm; margin: 0 auto; }
+  .header { display: flex; justify-content: space-between; align-items: flex-start; padding-bottom: 10px; border-bottom: 2px solid #1a3a5c; margin-bottom: 14px; }
+  .org-name { font-size: 12pt; font-weight: bold; color: #1a3a5c; }
+  .org-sub { font-size: 8.5pt; color: #555; margin-top: 2px; }
+  .receipt-badge { text-align: right; }
+  .receipt-badge .label { font-size: 9pt; color: #666; text-transform: uppercase; letter-spacing: 0.5px; }
+  .receipt-badge .number { font-size: 18pt; font-weight: bold; color: #1a3a5c; letter-spacing: 1px; }
+  .amount-box { background: #edf2f7; border-radius: 6px; padding: 14px 18px; margin: 14px 0; text-align: center; }
+  .amount-box .label { font-size: 9pt; color: #555; text-transform: uppercase; letter-spacing: 0.5px; }
+  .amount-box .amount { font-size: 22pt; font-weight: bold; color: #1a3a5c; margin-top: 2px; }
+  .section { margin-bottom: 14px; }
+  .section-title { font-size: 8pt; font-weight: bold; color: #4a5568; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; border-bottom: 1px solid #e2e8f0; padding-bottom: 3px; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 18px; }
+  .field .label { font-size: 7.5pt; color: #888; text-transform: uppercase; letter-spacing: 0.3px; }
+  .field .value { font-size: 9.5pt; color: #1a1a1a; }
+  .field .value.empty { color: #bbb; font-style: italic; }
+  .footer { margin-top: 20px; padding-top: 8px; border-top: 1px solid #e2e8f0; font-size: 7.5pt; color: #999; text-align: center; }
+  .no-fiscal { margin-top: 6px; font-size: 7.5pt; color: #aaa; font-style: italic; }
+  .divider { border: none; border-top: 1px dashed #cbd5e0; margin: 12px 0; }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <!-- HEADER -->
+  <div class="header">
+    <div>
+      <div class="org-name">Hogar Zoé</div>
+      <div class="org-sub">Asociación Centro Cristiano Canaán</div>
+      <div class="org-sub">Clínica de Rehabilitación · Costa Rica</div>
+    </div>
+    <div class="receipt-badge">
+      <div class="label">Recibo de pago</div>
+      <div class="number">#{{ "%05d"|format(payment.receipt_number) }}</div>
+    </div>
+  </div>
+
+  <!-- MONTO -->
+  <div class="amount-box">
+    <div class="label">Monto recibido</div>
+    <div class="amount">{{ payment.amount | crc }}</div>
+  </div>
+
+  <!-- DATOS DEL RESIDENTE -->
+  <div class="section">
+    <div class="section-title">Residente</div>
+    <div class="grid2">
+      <div class="field">
+        <div class="label">Nombre</div>
+        <div class="value">{{ resident.first_name }} {{ resident.last_name }}</div>
+      </div>
+      <div class="field">
+        <div class="label">Admisión</div>
+        <div class="value">{{ admission.admission_number }}</div>
+      </div>
+    </div>
+  </div>
+
+  <hr class="divider">
+
+  <!-- DATOS DEL PAGO -->
+  <div class="section">
+    <div class="section-title">Detalles del pago</div>
+    <div class="grid2">
+      <div class="field">
+        <div class="label">Fecha de pago</div>
+        <div class="value">{{ payment.payment_date }}</div>
+      </div>
+      <div class="field">
+        <div class="label">Método</div>
+        <div class="value">{{ payment.method.value | method_label }}</div>
+      </div>
+      <div class="field">
+        <div class="label">Tipo de pagador</div>
+        <div class="value">{{ payment.payer_type.value | payer_label }}</div>
+      </div>
+      <div class="field">
+        <div class="label">Nombre del pagador</div>
+        <div class="value {% if not payment.payer_name %}empty{% endif %}">
+          {{ payment.payer_name or "—" }}
+        </div>
+      </div>
+      {% if payment.reference %}
+      <div class="field">
+        <div class="label">Referencia / # transacción</div>
+        <div class="value">{{ payment.reference }}</div>
+      </div>
+      {% endif %}
+      {% if payment.notes %}
+      <div class="field">
+        <div class="label">Notas</div>
+        <div class="value">{{ payment.notes }}</div>
+      </div>
+      {% endif %}
+      <div class="field">
+        <div class="label">Recibido por</div>
+        <div class="value {% if not received_by %}empty{% endif %}">
+          {{ received_by.full_name if received_by else "—" }}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- FOOTER -->
+  <div class="footer">
+    <div>Generado: {{ generated_at }}</div>
+    <div class="no-fiscal">Documento de control interno — Sin valor de comprobante fiscal electrónico</div>
+  </div>
+
+</div>
+</body>
+</html>

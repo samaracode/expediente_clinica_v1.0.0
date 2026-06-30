@@ -1,0 +1,47 @@
+# ==========================================================================
+# Render — Infraestructura como código (Expediente Clínico ZOE)
+#
+# Define el servicio web del backend FastAPI. La base de datos NO se define
+# aquí: usamos Neon (externo) por su branching y persistencia. Render solo
+# corre la API en Docker; el frontend Next.js va en Vercel.
+#
+# Las variables con sync:false NO se guardan en el repo: se pegan a mano en
+# el panel de Render (Dashboard → el servicio → Environment).
+# ==========================================================================
+services:
+  - type: web
+    name: zoe-clinic-api
+    runtime: docker
+    # El Dockerfile vive en backend/, así que ese es el contexto de build
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    plan: starter            # $7/mes, sin "sleep". Cambiar a "free" para piloto.
+    region: oregon           # Cercano a Neon us-west; ajustar según tu región Neon
+    healthCheckPath: /api/v1/health
+    autoDeploy: true         # Redespliega al hacer push a la rama conectada
+    envVars:
+      # --- Secretos: se pegan en el panel, nunca en el repo ---
+      - key: DATABASE_URL
+        sync: false          # Cadena -pooler de Neon con ?sslmode=require
+      - key: SECRET_KEY
+        sync: false          # Generar uno fuerte y único para producción
+      - key: AWS_ACCESS_KEY_ID
+        sync: false          # Token de Cloudflare R2
+      - key: AWS_SECRET_ACCESS_KEY
+        sync: false          # Token de Cloudflare R2
+      - key: S3_ENDPOINT_URL
+        sync: false          # https://<account_id>.r2.cloudflarestorage.com
+      - key: CORS_ORIGINS
+        sync: false          # https://<tu-app>.vercel.app
+
+      # --- Config no secreta: versionada aquí ---
+      - key: ACCESS_TOKEN_EXPIRE_MINUTES
+        value: "480"
+      - key: STORAGE_BACKEND
+        value: s3
+      - key: AWS_REGION
+        value: auto          # R2 usa "auto" como región
+      - key: S3_BUCKET_NAME
+        value: zoe-clinic-files
+      - key: MAX_UPLOAD_MB
+        value: "10"
