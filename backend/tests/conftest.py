@@ -28,6 +28,7 @@ import app.models.medication  # noqa: F401
 import app.models.attendance  # noqa: F401
 import app.models.occupancy  # noqa: F401
 import app.models.handover  # noqa: F401
+import app.models.finance  # noqa: F401
 
 from app.models.user import User, UserRole
 from app.models.resident import Resident

@@ -67,6 +67,9 @@ class Admission(Base):
     medication_orders = relationship("MedicationOrder", back_populates="admission")
     medication_administrations = relationship("MedicationAdministration", back_populates="admission")
     attendance_entries = relationship("AttendanceEntry", back_populates="admission")
+    payment_agreement = relationship("PaymentAgreement", back_populates="admission", uselist=False)
+    charges = relationship("Charge", back_populates="admission")
+    payments = relationship("Payment", back_populates="admission")
 
 
 class EconomicSituation(Base):
