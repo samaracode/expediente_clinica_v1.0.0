@@ -9,6 +9,7 @@ import type {
   ShiftHandoverOut,
   ShiftIncidentOut,
   ShiftTaskOut,
+  UserAdminOut,
 } from "@/types";
 import PageBreadcrumb from "@/components/common/PageBreadCrumb";
 import Button from "@/components/ui/button/Button";
@@ -245,6 +246,17 @@ export default function HandoverPage() {
   const [showIncidentModal, setShowIncidentModal] = useState(false);
   const [showTaskModal, setShowTaskModal] = useState(false);
   const [modalLoading, setModalLoading] = useState(false);
+  const [userNames, setUserNames] = useState<Record<number, string>>({});
+
+  useEffect(() => {
+    apiFetch<UserAdminOut[]>("/users/")
+      .then((users) => setUserNames(Object.fromEntries(users.map((u) => [u.id, u.full_name]))))
+      .catch(() => {
+        /* selector de nombres opcional: si falla, se muestran los IDs */
+      });
+  }, []);
+
+  const nameOf = (id: number | null) => (id != null ? userNames[id] ?? `usuario #${id}` : "—");
 
   const load = useCallback(() => {
     setLoading(true);
@@ -419,11 +431,11 @@ export default function HandoverPage() {
         {handover && (status === "closed" || status === "received") && (
           <div className="mt-3 flex flex-wrap gap-x-6 gap-y-1 text-xs text-gray-500">
             <span>
-              Cerrado por usuario #{handover.closed_by_user_id ?? "—"} · {fmtDateTime(handover.closed_at)}
+              Cerrado por {nameOf(handover.closed_by_user_id)} · {fmtDateTime(handover.closed_at)}
             </span>
             {status === "received" && (
               <span>
-                Recibido por usuario #{handover.received_by_user_id ?? "—"} · {fmtDateTime(handover.received_at)}
+                Recibido por {nameOf(handover.received_by_user_id)} · {fmtDateTime(handover.received_at)}
               </span>
             )}
           </div>

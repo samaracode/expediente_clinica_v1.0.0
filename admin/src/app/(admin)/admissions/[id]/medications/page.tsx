@@ -15,6 +15,7 @@ import type {
   OrderStatus,
   MedicationRoute,
   ScheduleType,
+  UserAdminOut,
 } from "@/types";
 import PageBreadcrumb from "@/components/common/PageBreadCrumb";
 import Button from "@/components/ui/button/Button";
@@ -101,21 +102,28 @@ interface HistoryModalProps {
 
 function HistoryModal({ orderId, onClose }: HistoryModalProps) {
   const [administrations, setAdministrations] = useState<MedicationAdministrationOut[]>([]);
+  const [userNames, setUserNames] = useState<Record<number, string>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     setLoading(true);
     setError(null);
-    apiFetch<MedicationAdministrationOut[]>(
-      `/medication-orders/${orderId}/administrations`
-    )
-      .then(setAdministrations)
+    Promise.all([
+      apiFetch<MedicationAdministrationOut[]>(`/medication-orders/${orderId}/administrations`),
+      apiFetch<UserAdminOut[]>("/users/").catch(() => [] as UserAdminOut[]),
+    ])
+      .then(([adms, users]) => {
+        setAdministrations(adms);
+        setUserNames(Object.fromEntries(users.map((u) => [u.id, u.full_name])));
+      })
       .catch((err) => {
         setError(err instanceof ApiError ? err.message : "Error al cargar historial");
       })
       .finally(() => setLoading(false));
   }, [orderId]);
+
+  const nameOf = (id: number | null) => (id != null ? userNames[id] ?? `Usuario #${id}` : null);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
@@ -184,10 +192,10 @@ function HistoryModal({ orderId, onClose }: HistoryModalProps) {
                       })}
                     </span>
                     {a.administered_by_user_id && (
-                      <span>Usuario #{a.administered_by_user_id}</span>
+                      <span>Por: {nameOf(a.administered_by_user_id)}</span>
                     )}
                     {a.witness_user_id && (
-                      <span>Testigo: #{a.witness_user_id}</span>
+                      <span>Testigo: {nameOf(a.witness_user_id)}</span>
                     )}
                   </div>
                 )}
