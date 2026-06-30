@@ -2,8 +2,12 @@
 # Backend FastAPI — Expediente Clínico ZOE
 # Imagen Debian slim: wkhtmltopdf (pdfkit) y psycopg2 necesitan libs del SO
 # que son problemáticas en Alpine.
+#
+# Se fija a "bookworm" (Debian 12) a propósito: en "trixie" (Debian 13, el
+# default actual de python:3.12-slim) wkhtmltopdf fue eliminado de los repos
+# y apt-get falla con "no installation candidate".
 # ==========================================================================
-FROM python:3.12-slim
+FROM python:3.12-slim-bookworm
 
 # Evita prompts de apt y archivos .pyc; logs sin buffer para ver salida en vivo
 ENV PYTHONDONTWRITEBYTECODE=1 \
