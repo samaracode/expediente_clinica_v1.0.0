@@ -91,28 +91,38 @@ def build_local_url(file_id: int) -> str:
 
 
 # ---------------------------------------------------------------------------
-# Backend: S3
+# Backend: S3 (compatible con AWS S3 y Cloudflare R2 / cualquier S3-compatible)
 # ---------------------------------------------------------------------------
 
-def store_s3(content: bytes, original_filename: str) -> Tuple[str, str]:
+def _s3_client():
     """
-    Sube el archivo a S3.
-    Devuelve (s3_bucket, s3_key).
-    Requiere boto3 y credenciales AWS configuradas.
+    Crea un cliente boto3 S3.
+
+    Si S3_ENDPOINT_URL está configurado (p.ej. Cloudflare R2), apunta ahí;
+    de lo contrario usa AWS S3 estándar. La API es idéntica en ambos casos.
     """
     try:
         import boto3  # type: ignore
     except ImportError:
         raise RuntimeError("boto3 no está instalado. Instalá con: pip install boto3")
 
-    key = _build_key(original_filename)
-    client = boto3.client(
+    return boto3.client(
         "s3",
         region_name=settings.AWS_REGION,
         aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
         aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY,
+        endpoint_url=settings.S3_ENDPOINT_URL or None,
     )
-    client.put_object(
+
+
+def store_s3(content: bytes, original_filename: str) -> Tuple[str, str]:
+    """
+    Sube el archivo a S3 (o R2).
+    Devuelve (s3_bucket, s3_key).
+    Requiere boto3 y credenciales configuradas.
+    """
+    key = _build_key(original_filename)
+    _s3_client().put_object(
         Bucket=settings.S3_BUCKET_NAME,
         Key=key,
         Body=content,
@@ -122,21 +132,11 @@ def store_s3(content: bytes, original_filename: str) -> Tuple[str, str]:
 
 def build_presigned_url(s3_bucket: str, s3_key: str, expires_in: int = 3600) -> str:
     """
-    Genera una URL prefirmada de S3 para acceso temporal al archivo.
+    Genera una URL prefirmada para acceso temporal al archivo.
+    Funciona igual en AWS S3 y Cloudflare R2.
     expires_in: segundos de validez (default 1 hora).
     """
-    try:
-        import boto3  # type: ignore
-    except ImportError:
-        raise RuntimeError("boto3 no está instalado.")
-
-    client = boto3.client(
-        "s3",
-        region_name=settings.AWS_REGION,
-        aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
-        aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY,
-    )
-    return client.generate_presigned_url(
+    return _s3_client().generate_presigned_url(
         "get_object",
         Params={"Bucket": s3_bucket, "Key": s3_key},
         ExpiresIn=expires_in,

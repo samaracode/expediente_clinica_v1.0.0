@@ -16,6 +16,15 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 480
     DATABASE_URL: str
 
+    # Orígenes CORS permitidos (frontend). Coma-separados.
+    # En producción incluir la URL de Vercel, p.ej.:
+    #   CORS_ORIGINS=https://zoe-clinic.vercel.app
+    CORS_ORIGINS: str = "http://localhost:3005,http://127.0.0.1:3005"
+
+    @property
+    def cors_origins_list(self) -> list[str]:
+        return [o.strip() for o in self.CORS_ORIGINS.split(",") if o.strip()]
+
     # Almacenamiento de archivos
     # STORAGE_BACKEND: "local" para desarrollo (disco), "s3" para producción.
     STORAGE_BACKEND: str = "local"
@@ -28,11 +37,14 @@ class Settings(BaseSettings):
     # Minutos de margen antes de marcar una toma scheduled como vencida
     MED_OMITTED_MARGIN_MIN: int = 60
 
-    # AWS / S3
+    # AWS / S3 (compatible con Cloudflare R2, Backblaze B2, MinIO, etc.)
     AWS_ACCESS_KEY_ID: Optional[str] = None
     AWS_SECRET_ACCESS_KEY: Optional[str] = None
     AWS_REGION: str = "us-east-1"
     S3_BUCKET_NAME: str = "zoe-clinic-files"
+    # Endpoint S3 personalizado. Vacío = AWS S3 estándar.
+    # Para Cloudflare R2: https://<account_id>.r2.cloudflarestorage.com
+    S3_ENDPOINT_URL: Optional[str] = None
 
     @field_validator("DATABASE_URL", mode="before")
     @classmethod
