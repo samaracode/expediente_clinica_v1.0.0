@@ -11,15 +11,15 @@ import AdmissionStatusBadge from "@/components/residents/AdmissionStatusBadge";
 import { useAuth } from "@/context/AuthContext";
 
 const SEVERITY_LABELS: Record<AllergySeverity, string> = {
-  leve: "Leve",
-  moderada: "Moderada",
-  severa: "Severa",
+  mild: "Leve",
+  moderate: "Moderada",
+  severe: "Severa",
 };
 
 const SEVERITY_BADGE: Record<AllergySeverity, string> = {
-  leve: "bg-warning-50 text-warning-700 dark:bg-warning-500/10 dark:text-warning-400",
-  moderada: "bg-orange-50 text-orange-700 dark:bg-orange-500/10 dark:text-orange-400",
-  severa: "bg-error-50 text-error-700 dark:bg-error-500/10 dark:text-error-400",
+  mild: "bg-warning-50 text-warning-700 dark:bg-warning-500/10 dark:text-warning-400",
+  moderate: "bg-orange-50 text-orange-700 dark:bg-orange-500/10 dark:text-orange-400",
+  severe: "bg-error-50 text-error-700 dark:bg-error-500/10 dark:text-error-400",
 };
 
 export default function ResidentProfilePage() {
@@ -301,9 +301,9 @@ export default function ResidentProfilePage() {
                   className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm outline-none focus:border-brand-500 dark:border-gray-700 dark:bg-gray-800 dark:text-white"
                 >
                   <option value="">Sin especificar</option>
-                  <option value="leve">Leve</option>
-                  <option value="moderada">Moderada</option>
-                  <option value="severa">Severa</option>
+                  <option value="mild">Leve</option>
+                  <option value="moderate">Moderada</option>
+                  <option value="severe">Severa</option>
                 </select>
               </div>
             </div>

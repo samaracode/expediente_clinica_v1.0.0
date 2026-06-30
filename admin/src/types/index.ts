@@ -402,7 +402,7 @@ export type MedicationRoute = "oral" | "IM" | "SC" | "otra";
 export type ScheduleType = "scheduled" | "prn";
 export type OrderStatus = "active" | "suspended" | "finished";
 export type AdministrationStatus = "pending" | "taken" | "refused" | "omitted";
-export type AllergySeverity = "leve" | "moderada" | "severa";
+export type AllergySeverity = "mild" | "moderate" | "severe";
 
 export interface MedicationOut {
   id: number;

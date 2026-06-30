@@ -50,20 +50,16 @@ const ROUTE_LABELS: Record<string, string> = {
 };
 
 const ALLERGY_SEVERITY_BADGE: Record<AllergySeverity, string> = {
-  leve: "bg-warning-50 text-warning-700 dark:bg-warning-500/10 dark:text-warning-400",
-  moderada: "bg-orange-50 text-orange-700 dark:bg-orange-500/10 dark:text-orange-400",
-  severa: "bg-error-50 text-error-700 dark:bg-error-500/10 dark:text-error-400",
+  mild: "bg-warning-50 text-warning-700 dark:bg-warning-500/10 dark:text-warning-400",
+  moderate: "bg-orange-50 text-orange-700 dark:bg-orange-500/10 dark:text-orange-400",
+  severe: "bg-error-50 text-error-700 dark:bg-error-500/10 dark:text-error-400",
 };
 
-// Texto legible de severidad, tolerante al desajuste front/back
-// (el backend devuelve mild/moderate/severe; el front tipa leve/moderada/severa).
-const SEVERITY_TEXT: Record<string, string> = {
+// Texto legible (español) de la severidad.
+const SEVERITY_TEXT: Record<AllergySeverity, string> = {
   mild: "leve",
   moderate: "moderada",
   severe: "severa",
-  leve: "leve",
-  moderada: "moderada",
-  severa: "severa",
 };
 
 // ─── Modal de registro de toma ────────────────────────────────────────────
