@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Estado de Cuenta — {{ admission.admission_number }}</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: Arial, Helvetica, sans-serif; font-size: 10pt; color: #1a1a1a; line-height: 1.4; }
+  .page { padding: 16mm 16mm; }
+  .header { display: flex; justify-content: space-between; align-items: flex-start; padding-bottom: 10px; border-bottom: 2px solid #1a3a5c; margin-bottom: 16px; }
+  .org-name { font-size: 13pt; font-weight: bold; color: #1a3a5c; }
+  .org-sub { font-size: 8.5pt; color: #555; margin-top: 2px; }
+  .doc-title { text-align: right; }
+  .doc-title .title { font-size: 11pt; font-weight: bold; color: #1a3a5c; }
+  .doc-title .sub { font-size: 8.5pt; color: #666; margin-top: 2px; }
+  .section { margin-bottom: 16px; }
+  h2 { font-size: 10pt; font-weight: bold; color: #1a3a5c; border-bottom: 1.5px solid #1a3a5c; padding-bottom: 3px; margin-bottom: 8px; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 5px 20px; }
+  .field .label { font-size: 7.5pt; color: #888; text-transform: uppercase; letter-spacing: 0.3px; }
+  .field .value { font-size: 9.5pt; color: #1a1a1a; }
+  table { width: 100%; border-collapse: collapse; font-size: 9pt; }
+  th { background: #edf2f7; text-align: left; padding: 4px 7px; font-size: 7.5pt; text-transform: uppercase; letter-spacing: 0.3px; color: #4a5568; border: 1px solid #cbd5e0; }
+  th.right { text-align: right; }
+  td { padding: 4px 7px; border: 1px solid #e2e8f0; vertical-align: top; }
+  td.right { text-align: right; font-variant-numeric: tabular-nums; }
+  td.mono { font-family: monospace; }
+  tr:nth-child(even) td { background: #f7fafc; }
+  .no-data { color: #aaa; font-style: italic; font-size: 8.5pt; padding: 6px 0; }
+  .balance-box { display: flex; justify-content: flex-end; margin-top: 16px; }
+  .balance-inner { border: 2px solid #1a3a5c; border-radius: 6px; padding: 10px 18px; min-width: 220px; }
+  .balance-row { display: flex; justify-content: space-between; gap: 30px; font-size: 9pt; margin-bottom: 4px; }
+  .balance-row .bl { color: #555; }
+  .balance-row .br { font-variant-numeric: tabular-nums; font-weight: bold; }
+  .balance-total { display: flex; justify-content: space-between; gap: 30px; font-size: 11pt; font-weight: bold; color: #1a3a5c; border-top: 1.5px solid #1a3a5c; padding-top: 5px; margin-top: 5px; }
+  .balance-positive { color: #c53030; }
+  .balance-zero { color: #276749; }
+  .badge-auto { font-size: 7pt; color: #888; font-style: italic; margin-left: 4px; }
+  .footer { margin-top: 16px; padding-top: 6px; border-top: 1px solid #cbd5e0; font-size: 7.5pt; color: #999; text-align: center; }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <!-- HEADER -->
+  <div class="header">
+    <div>
+      <div class="org-name">Hogar Zoé — Asociación Centro Cristiano Canaán</div>
+      <div class="org-sub">Clínica de Rehabilitación de Adicciones · Costa Rica</div>
+    </div>
+    <div class="doc-title">
+      <div class="title">Estado de Cuenta</div>
+      <div class="sub">{{ admission.admission_number }}</div>
+    </div>
+  </div>
+
+  <!-- DATOS DEL RESIDENTE -->
+  <div class="section">
+    <h2>Residente</h2>
+    <div class="grid2">
+      <div class="field">
+        <div class="label">Nombre</div>
+        <div class="value">{{ resident.first_name }} {{ resident.last_name }}</div>
+      </div>
+      <div class="field">
+        <div class="label">Admisión</div>
+        <div class="value">{{ admission.admission_number }}</div>
+      </div>
+      {% if agreement %}
+      <div class="field">
+        <div class="label">Tipo de acuerdo</div>
+        <div class="value">{{ agreement.agreement_type.value | agreement_label }}</div>
+      </div>
+      <div class="field">
+        <div class="label">Monto acordado</div>
+        <div class="value">{{ agreement.amount | crc }}</div>
+      </div>
+      {% if agreement.billing_day and agreement.agreement_type.value == "monthly" %}
+      <div class="field">
+        <div class="label">Día de cobro</div>
+        <div class="value">Día {{ agreement.billing_day }}</div>
+      </div>
+      {% endif %}
+      {% else %}
+      <div class="field">
+        <div class="label">Acuerdo de pago</div>
+        <div class="value" style="color:#aaa;font-style:italic">Sin acuerdo registrado</div>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- CARGOS -->
+  <div class="section">
+    <h2>Cargos</h2>
+    {% if account.charges %}
+    <table>
+      <thead>
+        <tr>
+          <th>Fecha</th>
+          <th>Concepto</th>
+          <th>Periodo</th>
+          <th class="right">Monto</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for c in account.charges %}
+        <tr>
+          <td>{{ c.charge_date }}</td>
+          <td>
+            {{ c.concept }}
+            {% if c.is_auto %}<span class="badge-auto">(auto)</span>{% endif %}
+          </td>
+          <td>{{ c.period or "—" }}</td>
+          <td class="right">{{ c.amount | crc }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <p class="no-data">Sin cargos registrados.</p>
+    {% endif %}
+  </div>
+
+  <!-- PAGOS -->
+  <div class="section">
+    <h2>Pagos recibidos</h2>
+    {% if account.payments %}
+    <table>
+      <thead>
+        <tr>
+          <th>Recibo #</th>
+          <th>Fecha</th>
+          <th>Método</th>
+          <th>Pagador</th>
+          <th>Referencia</th>
+          <th class="right">Monto</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for p in account.payments %}
+        <tr>
+          <td class="mono">#{{ "%05d"|format(p.receipt_number) }}</td>
+          <td>{{ p.payment_date }}</td>
+          <td>{{ p.method | method_label }}</td>
+          <td>{{ p.payer_type | payer_label }}{% if p.payer_name %} — {{ p.payer_name }}{% endif %}</td>
+          <td>{{ p.reference or "—" }}</td>
+          <td class="right">{{ p.amount | crc }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <p class="no-data">Sin pagos registrados.</p>
+    {% endif %}
+  </div>
+
+  <!-- SALDO -->
+  {% set total_charges = namespace(v=0) %}
+  {% set total_payments = namespace(v=0) %}
+  {% for c in account.charges %}{% set total_charges.v = total_charges.v + c.amount %}{% endfor %}
+  {% for p in account.payments %}{% set total_payments.v = total_payments.v + p.amount %}{% endfor %}
+
+  <div class="balance-box">
+    <div class="balance-inner">
+      <div class="balance-row">
+        <span class="bl">Total cargos</span>
+        <span class="br">{{ total_charges.v | crc }}</span>
+      </div>
+      <div class="balance-row">
+        <span class="bl">Total pagos</span>
+        <span class="br">{{ total_payments.v | crc }}</span>
+      </div>
+      <div class="balance-total {% if account.balance > 0 %}balance-positive{% else %}balance-zero{% endif %}">
+        <span>Saldo pendiente</span>
+        <span>{{ account.balance | crc }}</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- FOOTER -->
+  <div class="footer">
+    Generado: {{ generated_at }} · Documento de control interno — Sin valor de comprobante fiscal electrónico
+  </div>
+
+</div>
+</body>
+</html>
