@@ -55,6 +55,17 @@ const ALLERGY_SEVERITY_BADGE: Record<AllergySeverity, string> = {
   severa: "bg-error-50 text-error-700 dark:bg-error-500/10 dark:text-error-400",
 };
 
+// Texto legible de severidad, tolerante al desajuste front/back
+// (el backend devuelve mild/moderate/severe; el front tipa leve/moderada/severa).
+const SEVERITY_TEXT: Record<string, string> = {
+  mild: "leve",
+  moderate: "moderada",
+  severe: "severa",
+  leve: "leve",
+  moderada: "moderada",
+  severa: "severa",
+};
+
 // ─── Modal de registro de toma ────────────────────────────────────────────
 
 interface RecordModalProps {
@@ -108,6 +119,20 @@ function RecordModal({
             </span>
           )}
         </p>
+
+        {/* Advertencia de alergias del residente */}
+        {entry.allergies.length > 0 && (
+          <div className="mb-4 rounded-lg border border-error-300 bg-error-50 px-3 py-2 dark:border-error-500/40 dark:bg-error-500/10">
+            <p className="text-sm font-semibold text-error-700 dark:text-error-400">
+              ⚠ Alergias del residente
+            </p>
+            <p className="mt-0.5 text-sm text-error-600 dark:text-error-300">
+              {entry.allergies
+                .map((a) => a.substance + (a.severity ? ` (${SEVERITY_TEXT[a.severity] ?? a.severity})` : ""))
+                .join(", ")}
+            </p>
+          </div>
+        )}
 
         {/* Estado */}
         <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
