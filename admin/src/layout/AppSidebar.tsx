@@ -49,6 +49,7 @@ const navItems: NavItem[] = [
       { name: "Pase de medicamentos", path: "/operations/medications" },
       { name: "Asistencia", path: "/operations/attendance" },
       { name: "Ocupación", path: "/operations/occupancy" },
+      { name: "Entrega de turno", path: "/operations/handover" },
     ],
   },
   {

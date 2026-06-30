@@ -698,3 +698,98 @@ export interface AttendanceSummaryOut {
   absent_without_leave: number;
   discharged: number;
 }
+
+// ─── Entrega de turno (Shift Handover) ───────────────────────────────────────
+
+export type HandoverStatus = "open" | "closed" | "received";
+export type IncidentSeverity = "low" | "medium" | "high";
+
+export interface HandoverAutoSummary {
+  medications: {
+    administration_id: number;
+    order_id: number;
+    admission_id: number;
+    status: string;
+    scheduled_at: string | null;
+    reason: string | null;
+  }[];
+  attendance: {
+    entry_id: number;
+    admission_id: number;
+    expected_status: string;
+    actual_status: string;
+    note: string | null;
+  }[];
+  exit_passes: {
+    exit_pass_id: number;
+    admission_id: number;
+    status: string;
+    departure_date: string | null;
+    return_date_actual: string | null;
+    events: ("departure" | "return")[];
+  }[];
+  admissions: {
+    admission_id: number;
+    resident_id: number;
+    admission_number: string;
+    status: string;
+  }[];
+  note: string;
+}
+
+export interface ShiftHandoverOut {
+  id: number;
+  date: string;
+  shift: Shift;
+  auto_summary: HandoverAutoSummary | null;
+  notes: string | null;
+  closed_by_user_id: number | null;
+  closed_at: string | null;
+  received_by_user_id: number | null;
+  received_at: string | null;
+  status: HandoverStatus;
+  created_at: string;
+}
+
+export interface ShiftIncidentOut {
+  id: number;
+  handover_id: number;
+  admission_id: number | null;
+  type: string;
+  severity: IncidentSeverity;
+  description: string;
+  action_taken: string | null;
+  reported_by_user_id: number | null;
+  created_at: string;
+}
+
+export interface ShiftIncidentCreate {
+  admission_id?: number | null;
+  type: string;
+  severity: IncidentSeverity;
+  description: string;
+  action_taken?: string | null;
+}
+
+export interface ShiftTaskOut {
+  id: number;
+  handover_id: number;
+  related_admission_id: number | null;
+  description: string;
+  due_at: string | null;
+  is_done: boolean;
+  done_by_user_id: number | null;
+  created_at: string;
+}
+
+export interface ShiftTaskCreate {
+  related_admission_id?: number | null;
+  description: string;
+  due_at?: string | null;
+}
+
+export interface ShiftTaskPatch {
+  description?: string;
+  due_at?: string | null;
+  is_done?: boolean;
+}
