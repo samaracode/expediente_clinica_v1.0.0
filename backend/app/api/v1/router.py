@@ -74,3 +74,8 @@ api_router.include_router(admissions_attendance_router, prefix="/admissions", ta
 api_router.include_router(occupancy_router, prefix="/occupancy", tags=["Occupancy"])
 api_router.include_router(waitlist_router, prefix="/waitlist", tags=["Waitlist"])
 api_router.include_router(settings_capacity_router, prefix="/settings", tags=["Settings"])
+
+# Módulo de Entrega de turno — Fase 4
+from app.api.v1 import handover
+api_router.include_router(handover.router, prefix="/shift-handovers", tags=["Handovers"])
+api_router.include_router(handover.tasks_router, prefix="/shift-tasks", tags=["Handovers"])
