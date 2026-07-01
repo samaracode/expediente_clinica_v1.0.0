@@ -3,6 +3,7 @@
 import { createContext, useCallback, useContext, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { apiFetch } from "@/lib/api";
+import { setToken, clearToken } from "@/lib/token";
 import { canAccess } from "@/lib/access";
 import type { User } from "@/types";
 
@@ -29,10 +30,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const login = useCallback(async (email: string, password: string) => {
-    await apiFetch("/auth/login", {
+    const { access_token } = await apiFetch<{ access_token: string }>("/auth/login", {
       method: "POST",
       body: JSON.stringify({ email, password }),
     });
+    // Guardar el token para enviarlo como Bearer (frontend y API están en
+    // dominios distintos, la cookie httpOnly de la API no viaja al frontend).
+    setToken(access_token);
     const me = await apiFetch<User>("/auth/me");
     setUser(me);
     router.push("/");
@@ -40,6 +44,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const logout = useCallback(async () => {
     await apiFetch("/auth/logout", { method: "POST" }).catch(() => {});
+    clearToken();
     setUser(null);
     router.push("/signin");
   }, [router]);

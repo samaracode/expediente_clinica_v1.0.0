@@ -1,5 +1,5 @@
-from typing import List
-from fastapi import Cookie, Depends, HTTPException, status
+from typing import List, Optional
+from fastapi import Cookie, Depends, Header, HTTPException, status
 from jose import jwt, JWTError
 from sqlalchemy.orm import Session
 
@@ -12,11 +12,21 @@ from app.models.user import User
 def get_current_user(
     db: Session = Depends(get_db),
     access_token: str = Cookie(default=None),
+    authorization: Optional[str] = Header(default=None),
 ) -> User:
-    if not access_token:
+    # Acepta el token por dos vías:
+    #  - Cookie "access_token": desarrollo local (mismo dominio).
+    #  - Header "Authorization: Bearer <token>": producción, donde el
+    #    frontend (Vercel) y la API (Render) están en dominios distintos y
+    #    la cookie no viaja entre ellos.
+    token = access_token
+    if not token and authorization and authorization.lower().startswith("bearer "):
+        token = authorization[7:].strip()
+
+    if not token:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="No autenticado")
     try:
-        payload = jwt.decode(access_token, settings.SECRET_KEY, algorithms=[ALGORITHM])
+        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[ALGORITHM])
         user_id: str = payload.get("sub")
         if user_id is None:
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token inválido")
