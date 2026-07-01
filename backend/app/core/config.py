@@ -25,6 +25,14 @@ class Settings(BaseSettings):
     def cors_origins_list(self) -> list[str]:
         return [o.strip() for o in self.CORS_ORIGINS.split(",") if o.strip()]
 
+    # Configuración de la cookie de sesión.
+    # En producción el frontend (Vercel) y la API (Render) están en dominios
+    # distintos sobre HTTPS -> la cookie debe ser cross-site:
+    #   COOKIE_SECURE=true  y  COOKIE_SAMESITE=none
+    # En desarrollo local (HTTP, mismo host) se dejan en false / lax.
+    COOKIE_SECURE: bool = False
+    COOKIE_SAMESITE: str = "lax"
+
     # Almacenamiento de archivos
     # STORAGE_BACKEND: "local" para desarrollo (disco), "s3" para producción.
     STORAGE_BACKEND: str = "local"

@@ -31,8 +31,8 @@ def login(credentials: UserLogin, response: Response, db: Session = Depends(get_
         key=COOKIE_NAME,
         value=token,
         httponly=True,
-        samesite="lax",
-        secure=False,  # True en producción con HTTPS
+        samesite=settings.COOKIE_SAMESITE,  # "none" en prod cross-site
+        secure=settings.COOKIE_SECURE,       # True en prod con HTTPS
         max_age=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
     )
     return Token(access_token=token)
@@ -40,7 +40,13 @@ def login(credentials: UserLogin, response: Response, db: Session = Depends(get_
 
 @router.post("/logout")
 def logout(response: Response):
-    response.delete_cookie(key=COOKIE_NAME)
+    # Debe usar los mismos atributos que set_cookie o el navegador
+    # no encontrará/borrará la cookie cross-site.
+    response.delete_cookie(
+        key=COOKIE_NAME,
+        samesite=settings.COOKIE_SAMESITE,
+        secure=settings.COOKIE_SECURE,
+    )
     return {"message": "Sesión cerrada"}
 
 
