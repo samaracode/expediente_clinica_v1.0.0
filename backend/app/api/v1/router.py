@@ -80,6 +80,10 @@ from app.api.v1 import handover
 api_router.include_router(handover.router, prefix="/shift-handovers", tags=["Handovers"])
 api_router.include_router(handover.tasks_router, prefix="/shift-tasks", tags=["Handovers"])
 
+# Dashboard — resumen estadístico del sistema
+from app.api.v1 import dashboard
+api_router.include_router(dashboard.router, prefix="/dashboard", tags=["Dashboard"])
+
 # Módulo de Control Financiero — Fase 5
 from app.api.v1.finance import (
     admissions_finance_router,

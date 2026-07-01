@@ -895,3 +895,30 @@ export interface FinanceOverviewOut {
   overdue_count: number;
   overdue_total: number;
 }
+
+// ---------------------------------------------------------------------------
+// Dashboard
+// ---------------------------------------------------------------------------
+
+export interface MonthlyFlowItem {
+  month: string;       // "YYYY-MM"
+  admissions: number;
+  discharges: number;
+}
+
+export interface StatusCountItem {
+  status: string;
+  count: number;
+}
+
+export interface DashboardSummary {
+  active_residents: number;
+  capacity: number;
+  occupancy_pct: number;
+  waitlist_count: number;
+  admissions_this_month: number;
+  discharges_this_month: number;
+  outstanding_balance?: number | null;
+  monthly_flow: MonthlyFlowItem[];
+  admissions_by_status: StatusCountItem[];
+}
