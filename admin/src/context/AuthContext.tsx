@@ -50,7 +50,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [router]);
 
   const hasAccess = useCallback(
-    (path: string) => canAccess(path, user?.role ?? ""),
+    (path: string) => canAccess(path, user?.role ?? "", user?.modules ?? []),
     [user]
   );
 

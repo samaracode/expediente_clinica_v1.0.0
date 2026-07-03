@@ -2,18 +2,18 @@ from datetime import date
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
-from app.core.deps import get_current_user, RoleRequired
+from app.core.deps import get_current_user, ModuleRequired
 from app.db.session import get_db
 from app.models.admission import Admission
 from app.models.assessment import OccupationalTherapyAssessment
-from app.models.user import User
+from app.models.user import Module, User
 from app.schemas.occupational_therapy import (
     OccupationalTherapyAssessmentOut,
     OccupationalTherapyAssessmentUpsert,
 )
 
 router = APIRouter()
-_role = RoleRequired(["admin", "occupational_therapist"])
+_role = ModuleRequired(Module.occupational_therapy)
 
 
 def _build_out(record: OccupationalTherapyAssessment) -> OccupationalTherapyAssessmentOut:

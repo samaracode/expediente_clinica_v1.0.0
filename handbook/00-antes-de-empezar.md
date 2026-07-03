@@ -78,32 +78,38 @@ Tratamiento activo
 
 ---
 
-## Los roles del sistema
+## Roles y módulos: dos conceptos distintos
 
-Cada persona que usa el sistema tiene asignado un **rol**. El rol determina qué secciones puede ver y qué acciones puede realizar. Esto garantiza que información sensible solo sea accesible para quien corresponde.
+Cada persona que usa el sistema tiene asignado un **rol** y una lista de **módulos habilitados**. Son cosas distintas:
 
-| Rol | Qué puede hacer | Quién suele tenerlo |
-|---|---|---|
-| **Administrador** | Acceso completo a todas las secciones, incluyendo usuarios, finanzas y reportes. | Dueños o directores del Hogar |
-| **Recepcionista** | Acceso al módulo de finanzas (cobros y pagos) y a las funciones generales. | Personal de recepción o administración |
-| **Consejero** | Acceso a evaluaciones terapéuticas y médicas. | Consejeros y coordinadores clínicos |
-| **Médico** | Acceso a la evaluación médica del expediente. | Médico del centro o de referencia |
-| **Trabajador Social** | Acceso a la evaluación de trabajo social. | Trabajador(a) social |
-| **Psicólogo** | Acceso a la evaluación psicológica. | Psicólogo(a) |
-| **Terapeuta Ocupacional** | Acceso a la evaluación de terapia ocupacional. | Terapeuta ocupacional |
+- El **rol** es una etiqueta que describe qué es esa persona (Médico, Psicólogo, Consejero, etc.). Se usa para identificarla en reportes y expedientes.
+- Los **módulos habilitados** son las secciones del sistema a las que esa persona puede entrar. Los define el Administrador para cada usuario individualmente, con casillas de verificación (ver Capítulo 11).
 
-> **Solo para administradores:** Este manual está escrito principalmente para el rol de **Administrador**, que tiene acceso a todas las funciones descritas. Algunos capítulos (como Finanzas y Administración) solo son visibles para este rol.
+| Rol | Quién suele tenerlo |
+|---|---|
+| **Administrador** | Dueños o directores del Hogar |
+| **Recepcionista** | Personal de recepción o administración |
+| **Consejero** | Consejeros y coordinadores clínicos |
+| **Médico** | Médico del centro o de referencia |
+| **Trabajador Social** | Trabajador(a) social |
+| **Psicólogo** | Psicólogo(a) |
+| **Terapeuta Ocupacional** | Terapeuta ocupacional |
+
+La única excepción es el **Administrador**: este rol siempre tiene acceso a **todas** las secciones del sistema, incluyendo Administración, Finanzas y todas las evaluaciones clínicas — sin necesidad de marcar módulos, y sin poder restringirse.
+
+> **Solo para administradores:** Este manual está escrito principalmente para el rol de **Administrador**, que tiene acceso a todas las funciones descritas. Algunos capítulos (como Finanzas y Administración) dependen de qué módulos tenga habilitados cada persona.
 
 ---
 
 ## ¿Quién puede ver qué?
 
-Para que el sistema sea seguro, no todas las personas tienen acceso a toda la información:
+El acceso a cada sección depende de los **módulos habilitados** de cada usuario, que el Administrador configura individualmente (Capítulo 11):
 
-- Las secciones de **Finanzas** solo las ven el Administrador y el Recepcionista.
-- La sección de **Administración** (gestión de usuarios y profesionales) solo la ve el Administrador.
-- Las evaluaciones clínicas del expediente (médica, psicológica, terapéutica, etc.) están restringidas al profesional de cada área y al Administrador.
-- El **Panel principal** y las funciones de operación diaria (medicamentos, asistencia, ocupación, turno) las puede ver cualquier persona con acceso al sistema.
+- Las secciones de **Finanzas** solo las ven quienes tengan el módulo Finanzas habilitado (típicamente Administrador y Recepcionista, pero esto se define persona por persona).
+- La sección de **Administración** (gestión de usuarios y profesionales) solo la ve el Administrador — no es configurable.
+- Las evaluaciones clínicas del expediente (médica, psicológica, terapéutica, trabajo social, terapia ocupacional) tienen cada una su propio módulo; solo las ve quien tenga ese módulo habilitado.
+- Las funciones de **operación diaria** (medicamentos, asistencia, ocupación, turno) y **Residentes** también son módulos que el Administrador debe habilitar para cada persona — no están abiertas por defecto.
+- El **Panel principal** (Dashboard) y **Mi Perfil** están siempre disponibles para cualquier usuario con una cuenta activa.
 
 ---
 
@@ -113,4 +119,4 @@ Para que el sistema sea seguro, no todas las personas tienen acceso a toda la in
 - Necesita internet, Chrome o Edge, y sus credenciales de acceso para usarlo.
 - Un **residente** puede tener varias **admisiones**; cada admisión tiene su propio **expediente**.
 - Las admisiones avanzan por etapas: desde "Pendiente de ingreso" hasta "Egresado" o "Abandono".
-- Cada usuario tiene un **rol** que determina qué puede ver y hacer en el sistema.
+- Cada usuario tiene un **rol** (etiqueta descriptiva) y **módulos habilitados** (lo que realmente determina qué puede ver y hacer). El Administrador siempre tiene acceso a todo.

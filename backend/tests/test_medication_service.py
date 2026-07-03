@@ -35,6 +35,7 @@ from app.schemas.medication import (
     MedicationCreate,
     MedicationOrderCreate,
     MedicationOrderPatch,
+    MedicationUpdate,
     PRNRecord,
     ResidentAllergyCreate,
 )
@@ -163,6 +164,25 @@ class TestMedicationCatalog:
     def test_list_empty(self, db):
         result = MedicationCatalogService(db).list()
         assert result == []
+
+    def test_update_changes_fields(self, db, make_medication):
+        med = make_medication(name="Original", is_controlled=False)
+        result = MedicationCatalogService(db).update(
+            med.id, MedicationUpdate(name="Actualizado", is_controlled=True)
+        )
+        assert result.name == "Actualizado"
+        assert result.is_controlled is True
+
+    def test_update_partial_keeps_other_fields(self, db, make_medication):
+        med = make_medication(name="Original", strength="5 mg")
+        result = MedicationCatalogService(db).update(med.id, MedicationUpdate(strength="10 mg"))
+        assert result.name == "Original"
+        assert result.strength == "10 mg"
+
+    def test_update_not_found_raises_404(self, db):
+        with pytest.raises(HTTPException) as exc:
+            MedicationCatalogService(db).update(9999, MedicationUpdate(name="X"))
+        assert exc.value.status_code == 404
 
 
 # ---------------------------------------------------------------------------

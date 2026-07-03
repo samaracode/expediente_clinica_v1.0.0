@@ -25,7 +25,19 @@ Si todo parece correcto y sigue sin poder entrar, comuníquese con el Administra
 
 **¿Por qué no veo la opción "Administración" en el menú?**
 
-La sección de Administración solo es visible para el rol de **Administrador**. Si su rol es diferente (Consejero, Médico, Recepcionista, etc.), esta opción no aparecerá en su menú. Si cree que debería tener acceso, comuníquese con el Administrador para que revise su rol.
+La sección de Administración solo es visible para el rol de **Administrador**, y esto no se puede habilitar a otros usuarios por módulo. Si necesita realizar una gestión de usuarios o del catálogo de medicamentos, pídaselo a la persona con rol Administrador.
+
+---
+
+**¿Por qué no veo alguna sección que antes sí veía (o un compañero sí ve)?**
+
+Desde que el sistema usa módulos habilitados por usuario, el acceso ya no depende únicamente del rol: dos personas con el mismo rol pueden tener módulos distintos si el Administrador así lo configuró. Si le falta acceso a una sección que necesita para su trabajo, pídale al Administrador que revise sus módulos habilitados desde **Administración → Usuarios** (Capítulo 11).
+
+---
+
+**El Administrador me cambió los módulos habilitados pero sigo viendo lo mismo (o sigo sin ver la sección nueva). ¿Qué pasa?**
+
+Los cambios de módulos se aplican la próxima vez que inicia sesión, no de manera instantánea si ya tiene el sistema abierto. Cierre sesión (esquina superior derecha → Cerrar sesión) y vuelva a entrar con su usuario y contraseña. Debería ver el cambio reflejado de inmediato.
 
 ---
 
@@ -61,9 +73,9 @@ Sí, el sistema lo permite técnicamente. Sin embargo, en la práctica, un resid
 
 ---
 
-**¿Por qué no puedo editar la evaluación médica de un expediente?**
+**¿Por qué no puedo editar (o ni siquiera ver) la evaluación médica de un expediente?**
 
-Las evaluaciones clínicas están restringidas por rol. La evaluación médica solo puede editarla alguien con rol de **Médico**, **Consejero** o **Administrador**. Si su rol es diferente, puede ver la información pero no modificarla. Esto protege la integridad de los registros clínicos.
+Cada evaluación clínica (médica, psicológica, terapéutica, trabajo social, terapia ocupacional) tiene su propio módulo de acceso. Solo puede verla y editarla quien tenga ese módulo específico habilitado (o el Administrador, que siempre tiene acceso a todo). Si necesita acceso a una evaluación para hacer su trabajo, pídale al Administrador que le habilite ese módulo desde **Administración → Usuarios** (Capítulo 11).
 
 ---
 

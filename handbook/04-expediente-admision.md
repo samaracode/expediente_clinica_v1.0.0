@@ -124,7 +124,7 @@ Registra el contexto económico del residente: si trabaja, cuál es su ingreso m
 
 [CAPTURA: pantalla de evaluación médica con secciones de validación IAFA, pruebas de drogas y medicamentos previos]
 
-> **Nota:** Esta sección solo la puede editar el personal con rol **Médico**, **Consejero** o **Administrador**.
+> **Nota:** Esta sección solo la puede editar quien tenga habilitado el módulo **Evaluación Médica** (o el Administrador). Ver Capítulo 11 para habilitar módulos.
 
 Incluye:
 - Validación del expediente IAFA y notas del CIE (Clasificación Internacional de Enfermedades).
@@ -137,7 +137,7 @@ Incluye:
 
 [CAPTURA: pantalla de evaluación terapéutica con pestañas para cada instrumento de evaluación]
 
-> **Nota:** Esta sección solo la puede editar el **Consejero** o el **Administrador**.
+> **Nota:** Esta sección solo la puede editar quien tenga habilitado el módulo **Evaluación Terapéutica** (o el Administrador).
 
 Contiene los instrumentos terapéuticos de evaluación inicial:
 - Historia clínica terapéutica
@@ -153,7 +153,7 @@ Contiene los instrumentos terapéuticos de evaluación inicial:
 
 [CAPTURA: pantalla de trabajo social con campos de impresión diagnóstica y evaluación inicial]
 
-> **Nota:** Esta sección solo la puede editar el **Trabajador Social** o el **Administrador**.
+> **Nota:** Esta sección solo la puede editar quien tenga habilitado el módulo **Trabajo Social** (o el Administrador).
 
 Registra la evaluación inicial desde el área de trabajo social: impresión diagnóstica, historia social, situación familiar y evaluación inicial.
 
@@ -163,7 +163,7 @@ Registra la evaluación inicial desde el área de trabajo social: impresión dia
 
 [CAPTURA: pantalla de psicología con campos de evaluación observable y pruebas diagnósticas]
 
-> **Nota:** Esta sección solo la puede editar el **Psicólogo** o el **Administrador**.
+> **Nota:** Esta sección solo la puede editar quien tenga habilitado el módulo **Evaluación Psicológica** (o el Administrador).
 
 Incluye:
 - Evaluación observable del estado mental y conductual.
@@ -176,7 +176,7 @@ Incluye:
 
 [CAPTURA: pantalla de terapia ocupacional con campos de perfil ocupacional]
 
-> **Nota:** Esta sección solo la puede editar el **Terapeuta Ocupacional** o el **Administrador**.
+> **Nota:** Esta sección solo la puede editar quien tenga habilitado el módulo **Terapia Ocupacional** (o el Administrador).
 
 Registra el perfil ocupacional del residente: sus habilidades, intereses, roles y barreras para la participación en actividades cotidianas.
 

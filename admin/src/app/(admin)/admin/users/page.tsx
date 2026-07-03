@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { apiFetch, ApiError } from "@/lib/api";
-import type { UserAdminOut } from "@/types";
+import type { Module, UserAdminOut } from "@/types";
 import PageBreadcrumb from "@/components/common/PageBreadCrumb";
 import Button from "@/components/ui/button/Button";
 
@@ -26,7 +26,22 @@ const ROLE_COLORS: Record<string, string> = {
   receptionist: "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300",
 };
 
-type NewUserForm = { full_name: string; email: string; role: string; password: string };
+// ADR 0003: acceso por-usuario, no por-rol. El admin marca estos checkboxes
+// al crear/editar cada usuario. "admin" no aparece aquí: tiene acceso total
+// implícito y no es editable (evita que se bloquee a sí mismo).
+const MODULES: { value: Module; label: string }[] = [
+  { value: "residents", label: "Clínica / Residentes" },
+  { value: "operations", label: "Operación (medicamentos, asistencia, ocupación, turno)" },
+  { value: "finance", label: "Finanzas" },
+  { value: "reports", label: "Reportes" },
+  { value: "medical", label: "Evaluación Médica" },
+  { value: "psychology", label: "Evaluación Psicológica" },
+  { value: "therapeutic", label: "Evaluación Terapéutica" },
+  { value: "social_work", label: "Trabajo Social" },
+  { value: "occupational_therapy", label: "Terapia Ocupacional" },
+];
+
+type NewUserForm = { full_name: string; email: string; role: string; password: string; modules: Module[] };
 
 const inputCls =
   "w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 outline-none focus:border-brand-500 dark:border-gray-700 dark:bg-gray-900 dark:text-white";
@@ -40,11 +55,110 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
   );
 }
 
+function ModuleCheckboxes({
+  selected,
+  onChange,
+  disabled,
+}: {
+  selected: Module[];
+  onChange: (modules: Module[]) => void;
+  disabled?: boolean;
+}) {
+  function toggle(m: Module) {
+    if (selected.includes(m)) onChange(selected.filter((x) => x !== m));
+    else onChange([...selected, m]);
+  }
+  return (
+    <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+      {MODULES.map((m) => (
+        <label key={m.value} className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+          <input
+            type="checkbox"
+            checked={selected.includes(m.value)}
+            onChange={() => toggle(m.value)}
+            disabled={disabled}
+            className="h-4 w-4 rounded border-gray-300 text-brand-500 focus:ring-brand-500"
+          />
+          {m.label}
+        </label>
+      ))}
+    </div>
+  );
+}
+
+function ResetPasswordModal({ userId, onClose }: { userId: number; onClose: () => void }) {
+  const [newPassword, setNewPassword] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [done, setDone] = useState(false);
+
+  async function handleReset() {
+    if (!newPassword) {
+      setError("Escribí la nueva contraseña temporal.");
+      return;
+    }
+    setSaving(true);
+    setError(null);
+    try {
+      await apiFetch(`/users/${userId}/reset-password`, {
+        method: "POST",
+        body: JSON.stringify({ new_password: newPassword }),
+      });
+      setDone(true);
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Error al restablecer");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+      <div className="w-full max-w-sm rounded-2xl border border-gray-200 bg-white p-6 space-y-4 dark:border-gray-800 dark:bg-gray-900">
+        <h3 className="text-sm font-semibold text-gray-800 dark:text-white">Restablecer contraseña</h3>
+        {done ? (
+          <>
+            <p className="text-sm text-success-600 dark:text-success-400">
+              Contraseña actualizada. Comuníquele la nueva contraseña temporal a la persona.
+            </p>
+            <Button onClick={onClose} className="w-full">Cerrar</Button>
+          </>
+        ) : (
+          <>
+            <Field label="Nueva contraseña temporal">
+              <input
+                type="text"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                placeholder="Contraseña temporal"
+                className={inputCls}
+              />
+            </Field>
+            {error && <p role="alert" className="text-sm text-error-500">{error}</p>}
+            <div className="flex justify-end gap-2">
+              <button type="button" onClick={onClose} className="text-sm text-gray-500 hover:underline">
+                Cancelar
+              </button>
+              <Button onClick={handleReset} disabled={saving}>
+                {saving ? "Guardando..." : "Restablecer"}
+              </Button>
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function UserRow({ user, onUpdate }: { user: UserAdminOut; onUpdate: (u: UserAdminOut) => void }) {
   const [role, setRole] = useState(user.role);
+  const [modules, setModules] = useState<Module[]>(user.modules);
   const [saving, setSaving] = useState(false);
+  const [editingModules, setEditingModules] = useState(false);
+  const [resetting, setResetting] = useState(false);
 
-  const roleLabel = ROLES.find((r) => r.value === role)?.label ?? role;
+  const isAdmin = user.role === "admin";
+  const modulesChanged = JSON.stringify([...modules].sort()) !== JSON.stringify([...user.modules].sort());
 
   async function saveRole() {
     setSaving(true);
@@ -54,6 +168,20 @@ function UserRow({ user, onUpdate }: { user: UserAdminOut; onUpdate: (u: UserAdm
         body: JSON.stringify({ role }),
       });
       onUpdate(updated);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function saveModules() {
+    setSaving(true);
+    try {
+      const updated = await apiFetch<UserAdminOut>(`/users/${user.id}`, {
+        method: "PUT",
+        body: JSON.stringify({ modules }),
+      });
+      onUpdate(updated);
+      setEditingModules(false);
     } finally {
       setSaving(false);
     }
@@ -73,7 +201,7 @@ function UserRow({ user, onUpdate }: { user: UserAdminOut; onUpdate: (u: UserAdm
   }
 
   return (
-    <tr className="border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-white/[0.02]">
+    <tr className="border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-white/[0.02] align-top">
       <td className="px-4 py-3">
         <p className="text-sm font-medium text-gray-800 dark:text-white">{user.full_name}</p>
         <p className="text-xs text-gray-400">{user.email}</p>
@@ -102,6 +230,40 @@ function UserRow({ user, onUpdate }: { user: UserAdminOut; onUpdate: (u: UserAdm
         </div>
       </td>
       <td className="px-4 py-3">
+        {isAdmin ? (
+          <span className="text-xs text-gray-400">Acceso total (fijo)</span>
+        ) : editingModules ? (
+          <div className="space-y-2 max-w-xs">
+            <ModuleCheckboxes selected={modules} onChange={setModules} disabled={saving} />
+            <div className="flex gap-2">
+              <button type="button" onClick={saveModules} disabled={saving} className="text-xs text-brand-500 hover:underline">
+                Guardar
+              </button>
+              <button
+                type="button"
+                onClick={() => { setModules(user.modules); setEditingModules(false); }}
+                className="text-xs text-gray-400 hover:underline"
+              >
+                Cancelar
+              </button>
+            </div>
+          </div>
+        ) : (
+          <button type="button" onClick={() => setEditingModules(true)} className="text-left">
+            {user.modules.length === 0 ? (
+              <span className="text-xs text-gray-400 hover:underline">Sin módulos — editar</span>
+            ) : (
+              <span className="text-xs text-gray-600 dark:text-gray-300 hover:underline">
+                {user.modules.length} módulo{user.modules.length !== 1 ? "s" : ""} — editar
+              </span>
+            )}
+          </button>
+        )}
+        {modulesChanged && !editingModules && (
+          <p className="text-xs text-warning-600">Cambios sin guardar</p>
+        )}
+      </td>
+      <td className="px-4 py-3">
         <button
           type="button"
           onClick={toggleActive}
@@ -115,6 +277,12 @@ function UserRow({ user, onUpdate }: { user: UserAdminOut; onUpdate: (u: UserAdm
           {user.is_active ? "Activo" : "Inactivo"}
         </button>
       </td>
+      <td className="px-4 py-3">
+        <button type="button" onClick={() => setResetting(true)} className="text-xs text-brand-500 hover:underline">
+          Restablecer contraseña
+        </button>
+        {resetting && <ResetPasswordModal userId={user.id} onClose={() => setResetting(false)} />}
+      </td>
     </tr>
   );
 }
@@ -123,7 +291,7 @@ export default function UsersPage() {
   const [users, setUsers] = useState<UserAdminOut[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState<NewUserForm>({ full_name: "", email: "", role: "counselor", password: "" });
+  const [form, setForm] = useState<NewUserForm>({ full_name: "", email: "", role: "counselor", password: "", modules: [] });
   const [creating, setCreating] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
 
@@ -131,7 +299,7 @@ export default function UsersPage() {
     apiFetch<UserAdminOut[]>("/users/").then(setUsers).finally(() => setLoading(false));
   }, []);
 
-  function setField<K extends keyof NewUserForm>(k: K, v: string) {
+  function setField<K extends keyof NewUserForm>(k: K, v: NewUserForm[K]) {
     setForm((prev) => ({ ...prev, [k]: v }));
   }
 
@@ -148,7 +316,7 @@ export default function UsersPage() {
         body: JSON.stringify(form),
       });
       setUsers((prev) => [...prev, created].sort((a, b) => a.full_name.localeCompare(b.full_name)));
-      setForm({ full_name: "", email: "", role: "counselor", password: "" });
+      setForm({ full_name: "", email: "", role: "counselor", password: "", modules: [] });
       setShowForm(false);
     } catch (err) {
       setCreateError(err instanceof ApiError ? err.message : "Error al crear");
@@ -192,9 +360,16 @@ export default function UsersPage() {
               </select>
             </Field>
             <Field label="Contraseña *">
-              <input type="password" value={form.password} onChange={(e) => setField("password", e.target.value)} placeholder="Mínimo 8 caracteres" className={inputCls} />
+              <input type="password" value={form.password} onChange={(e) => setField("password", e.target.value)} placeholder="Contraseña temporal" className={inputCls} />
             </Field>
           </div>
+          {form.role === "admin" ? (
+            <p className="text-sm text-gray-400">El rol Administrador tiene acceso total a todos los módulos (fijo, no editable).</p>
+          ) : (
+            <Field label="Módulos habilitados">
+              <ModuleCheckboxes selected={form.modules} onChange={(m) => setField("modules", m)} />
+            </Field>
+          )}
           <div className="flex items-center gap-4">
             {createError && <p role="alert" className="text-sm text-error-500">{createError}</p>}
             <Button onClick={handleCreate} disabled={creating} className="ml-auto">
@@ -208,20 +383,24 @@ export default function UsersPage() {
         {loading ? (
           <div className="p-6 text-sm text-gray-400">Cargando...</div>
         ) : (
-          <table className="w-full text-left">
-            <thead>
-              <tr className="border-b border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-white/[0.02]">
-                <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-gray-500">Usuario</th>
-                <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-gray-500">Rol</th>
-                <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-gray-500">Estado</th>
-              </tr>
-            </thead>
-            <tbody>
-              {users.map((u) => (
-                <UserRow key={u.id} user={u} onUpdate={handleUpdate} />
-              ))}
-            </tbody>
-          </table>
+          <div className="overflow-x-auto">
+            <table className="w-full text-left">
+              <thead>
+                <tr className="border-b border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-white/[0.02]">
+                  <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-gray-500">Usuario</th>
+                  <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-gray-500">Rol</th>
+                  <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-gray-500">Módulos</th>
+                  <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-gray-500">Estado</th>
+                  <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-gray-500">Contraseña</th>
+                </tr>
+              </thead>
+              <tbody>
+                {users.map((u) => (
+                  <UserRow key={u.id} user={u} onUpdate={handleUpdate} />
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
       </div>
     </div>

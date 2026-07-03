@@ -14,10 +14,10 @@ from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
-from app.core.deps import get_current_user
+from app.core.deps import ModuleRequired
 from app.db.session import get_db
 from app.models.attendance import Shift
-from app.models.user import User
+from app.models.user import Module, User
 from app.schemas.attendance import (
     AttendanceSummaryOut,
     EntryOut,
@@ -29,6 +29,7 @@ from app.services.attendance_service import AttendanceService
 
 # ─── Router de nivel centro (/attendance) ───────────────────────────────────
 attendance_router = APIRouter()
+_role = ModuleRequired(Module.operations)
 
 
 @attendance_router.get("/roll-call", response_model=RosterOut)
@@ -36,7 +37,7 @@ def get_roster(
     target_date: Optional[str] = Query(None, alias="date"),
     shift: Optional[str] = Query(None),
     db: Session = Depends(get_db),
-    _: User = Depends(get_current_user),
+    _: User = Depends(_role),
 ):
     """
     Roster pre-llenado para una fecha/turno.
@@ -51,7 +52,7 @@ def get_roster(
 def confirm_roll_call(
     data: RollCallCreate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(_role),
 ):
     """
     Guarda/confirma un pase de lista.
@@ -64,7 +65,7 @@ def confirm_roll_call(
 def today_summary(
     target_date: Optional[str] = Query(None, alias="date"),
     db: Session = Depends(get_db),
-    _: User = Depends(get_current_user),
+    _: User = Depends(_role),
 ):
     """
     Resumen de conteo del día.
@@ -85,7 +86,7 @@ admissions_attendance_router = APIRouter()
 def get_admission_attendance(
     admission_id: int,
     db: Session = Depends(get_db),
-    _: User = Depends(get_current_user),
+    _: User = Depends(_role),
 ):
     """Historial de entradas de asistencia de un residente."""
     return AttendanceService(db).get_admission_history(admission_id)

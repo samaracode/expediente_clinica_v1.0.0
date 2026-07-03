@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 from app.core.config import settings
 from app.core.security import ALGORITHM
 from app.db.session import get_db
-from app.models.user import User
+from app.models.user import Module, User
 
 
 def get_current_user(
@@ -40,11 +40,32 @@ def get_current_user(
 
 
 class RoleRequired:
+    """Restringe por rol. Usar solo para accesos admin-only (gestión de
+    usuarios/profesionales, altas de residentes/admisiones, etc.). Para
+    módulos clínicos/operativos configurables por el admin, usar
+    ModuleRequired (ADR 0003)."""
+
     def __init__(self, allowed_roles: List[str]):
         self.allowed_roles = allowed_roles
 
     def __call__(self, current_user: User = Depends(get_current_user)) -> User:
         if current_user.role.value not in self.allowed_roles:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="No tiene permisos suficientes para realizar esta acción",
+            )
+        return current_user
+
+
+class ModuleRequired:
+    """Restringe por permiso de módulo asignado al usuario (ADR 0003). El
+    rol admin tiene acceso total implícito (User.has_module lo resuelve)."""
+
+    def __init__(self, module: Module):
+        self.module = module
+
+    def __call__(self, current_user: User = Depends(get_current_user)) -> User:
+        if not current_user.has_module(self.module):
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="No tiene permisos suficientes para realizar esta acción",

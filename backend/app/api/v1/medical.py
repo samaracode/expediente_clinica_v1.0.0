@@ -2,11 +2,11 @@ from datetime import date
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
-from app.core.deps import get_current_user, RoleRequired
+from app.core.deps import get_current_user, ModuleRequired
 from app.db.session import get_db
 from app.models.admission import Admission
 from app.models.medical import DrugTest, MedicationLog, MedicalRecord
-from app.models.user import User
+from app.models.user import Module, User
 from app.schemas.medical import (
     DrugTestItem,
     MedicationLogItem,
@@ -15,7 +15,7 @@ from app.schemas.medical import (
 )
 
 router = APIRouter()
-_role = RoleRequired(["admin", "medical", "counselor"])
+_role = ModuleRequired(Module.medical)
 
 
 def _build_out(record: MedicalRecord) -> MedicalRecordOut:

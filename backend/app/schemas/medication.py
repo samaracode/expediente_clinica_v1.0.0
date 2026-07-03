@@ -127,6 +127,14 @@ class MedicationCreate(BaseModel):
     notes: Optional[str] = None
 
 
+class MedicationUpdate(BaseModel):
+    name: Optional[str] = None
+    form: Optional[str] = None
+    strength: Optional[str] = None
+    is_controlled: Optional[bool] = None
+    notes: Optional[str] = None
+
+
 class MedicationOut(BaseModel):
     id: int
     name: str

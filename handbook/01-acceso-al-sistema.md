@@ -55,21 +55,22 @@ Una vez dentro, verá la siguiente distribución de la pantalla:
 
 El menú lateral contiene todas las secciones del sistema. A continuación se describe cada una:
 
-| Opción del menú | Qué encontrará |
-|---|---|
-| **Dashboard** | El panel principal con indicadores y gráficos del Hogar. |
-| **Clínica → Residentes** | Lista de todos los residentes y acceso a sus fichas. |
-| **Operación → Pase de medicamentos** | Registro diario de la administración de medicamentos. |
-| **Operación → Asistencia** | Registro de presencia de residentes por turno. |
-| **Operación → Ocupación** | Estado de capacidad del Hogar y lista de espera. |
-| **Operación → Entrega de turno** | Registro de incidentes y tareas al cambio de turno. |
-| **Finanzas → Resumen y morosidad** | Resumen de cobros, pagos y cuentas pendientes. *(Solo Administrador y Recepcionista)* |
-| **Reportes** | Reportes de admisiones, consultas y progreso de tratamiento. |
-| **Administración → Usuarios** | Gestión de cuentas del personal. *(Solo Administrador)* |
-| **Administración → Profesionales** | Registro del equipo clínico. *(Solo Administrador)* |
-| **User Profile** | Sus datos personales y contraseña. |
+| Opción del menú | Qué encontrará | Requiere módulo |
+|---|---|---|
+| **Dashboard** | El panel principal con indicadores y gráficos del Hogar. | Siempre visible |
+| **Clínica → Residentes** | Lista de todos los residentes y acceso a sus fichas. | Residentes |
+| **Operación → Pase de medicamentos** | Registro diario de la administración de medicamentos. | Operación |
+| **Operación → Asistencia** | Registro de presencia de residentes por turno. | Operación |
+| **Operación → Ocupación** | Estado de capacidad del Hogar y lista de espera. | Operación |
+| **Operación → Entrega de turno** | Registro de incidentes y tareas al cambio de turno. | Operación |
+| **Finanzas → Resumen y morosidad** | Resumen de cobros, pagos y cuentas pendientes. | Finanzas |
+| **Reportes** | Reportes de admisiones, consultas y progreso de tratamiento. | Reportes |
+| **Administración → Usuarios** | Gestión de cuentas del personal. | *(Solo Administrador)* |
+| **Administración → Profesionales** | Registro del equipo clínico. | *(Solo Administrador)* |
+| **Administración → Medicamentos** | Catálogo de medicamentos disponibles para prescribir. | *(Solo Administrador)* |
+| **User Profile** | Sus datos personales y contraseña. | Siempre visible |
 
-> **Nota:** Si no ve alguna de estas opciones en su menú, es porque su rol no tiene acceso a esa sección. Consulte la tabla de roles en el Capítulo 0.
+> **Nota:** Si no ve alguna de estas opciones en su menú, es porque no tiene habilitado el módulo correspondiente. El Administrador puede habilitárselo desde **Administración → Usuarios** (Capítulo 11). Las tres opciones de Administración son exclusivas del rol Administrador y no se pueden habilitar a otros usuarios.
 
 ---
 

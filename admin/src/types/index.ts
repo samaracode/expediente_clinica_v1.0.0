@@ -7,12 +7,27 @@ export type UserRole =
   | "occupational_therapist"
   | "receptionist";
 
+// Módulos configurables de acceso por usuario (ADR 0003). `admin` no
+// necesita módulos: tiene acceso total implícito. `dashboard` no es
+// configurable: siempre visible.
+export type Module =
+  | "residents"
+  | "operations"
+  | "finance"
+  | "reports"
+  | "medical"
+  | "psychology"
+  | "therapeutic"
+  | "social_work"
+  | "occupational_therapy";
+
 export interface User {
   id: number;
   full_name: string;
   email: string;
   role: UserRole;
   is_active: boolean;
+  modules: Module[];
 }
 
 export interface Token {
@@ -237,6 +252,31 @@ export interface UserAdminOut {
   role: string;
   is_active: boolean;
   created_at: string | null;
+  modules: Module[];
+}
+
+export interface UserCreate {
+  full_name: string;
+  email: string;
+  role: string;
+  password: string;
+  modules: Module[];
+}
+
+export interface UserUpdate {
+  full_name?: string;
+  role?: string;
+  is_active?: boolean;
+  modules?: Module[];
+}
+
+export interface PasswordResetIn {
+  new_password: string;
+}
+
+export interface PasswordChangeIn {
+  current_password: string;
+  new_password: string;
 }
 
 export interface TreatmentAreaOut {
@@ -421,6 +461,14 @@ export interface MedicationOut {
 
 export interface MedicationCreate {
   name: string;
+  form?: string;
+  strength?: string;
+  is_controlled?: boolean;
+  notes?: string;
+}
+
+export interface MedicationUpdate {
+  name?: string;
   form?: string;
   strength?: string;
   is_controlled?: boolean;

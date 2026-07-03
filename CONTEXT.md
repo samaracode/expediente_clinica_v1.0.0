@@ -5,6 +5,45 @@ Canaán), clínica de rehabilitación de adicciones en Costa Rica.
 
 ## Glosario
 
+### Usuario (User)
+Cuenta de acceso al sistema para una persona del personal. Tiene `full_name`,
+`email`, `role`, `is_active`. El **`email` es solo un identificador de login,
+no un buzón**: el personal de ZOE no necesariamente tiene correo real ni el
+centro tiene correo saliente configurado. Por eso el sistema **no** envía
+correos (nada de "link de recuperación", verificación de email, ni
+invitaciones). La recuperación de contraseña es **manual**: el Administrador la
+restablece desde `Administración → Usuarios` y el usuario luego la cambia desde
+`Mi Perfil`. El cambio de contraseña temporal es opcional, no forzado.
+_Avoid_: "cuenta de correo" como sinónimo de email — aquí email ≠ buzón.
+
+### Rol (Role)
+**Etiqueta descriptiva** de qué es una persona: `admin`, `counselor`
+(Consejero), `medical` (Médico), `social_worker` (Trabajador Social),
+`psychologist` (Psicólogo), `occupational_therapist` (Terapeuta Ocupacional),
+`receptionist` (Recepcionista). Tras el rediseño de autorización, **el rol ya
+NO controla el acceso a módulos** (eso lo hacen los Permisos de módulo por
+usuario); el rol solo describe a la persona y sigue usándose para el vínculo
+Professional→área y el filtro financiero del Dashboard. El rol `admin` es el
+único con significado de acceso: **acceso total, no editable** (evita lockout).
+
+### Permiso de módulo (Module permission)
+Acceso de un **Usuario** concreto a un **Módulo** del sistema, marcado por el
+Administrador con checkboxes al crear/editar el usuario. Reemplaza la matriz
+rol→ruta hardcodeada. Granularidad **por módulo, acceso total** (sí/no; quien
+entra puede ver y editar). Módulos configurables: Residentes, Operación (un
+solo checkbox para sus 4 sub-pantallas), Finanzas, Reportes, y cada evaluación
+clínica por separado (Médica, Psicología, Terapéutica, Trabajo Social, Terapia
+Ocupacional). El **Dashboard** siempre es visible (pantalla de inicio) y
+**Administración** es siempre admin-only; ninguno es configurable. El `admin`
+tiene todos los módulos por defecto y no editable. Ver ADR 0003.
+
+### Profesional (Professional)
+Perfil clínico asociado a un Usuario (relación 1:1 opcional). Vincula al usuario
+con un Área de tratamiento y guarda su especialidad. Un Usuario **tiene** (no
+**es**) un Profesional: no todos los usuarios son profesionales clínicos (p. ej.
+recepcionista, admin). El nombre mostrado del profesional vive hoy duplicado en
+`User.full_name` y en `Professional.first_name/last_name`.
+
 ### Dashboard
 Página de inicio del sistema (ruta `/`), lo primero que ve el usuario tras
 iniciar sesión. Presenta estadísticas significativas del estado de la clínica.

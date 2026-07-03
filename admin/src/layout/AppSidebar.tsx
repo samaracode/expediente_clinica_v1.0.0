@@ -16,12 +16,15 @@ import {
   UserCircleIcon,
 } from "../icons/index";
 import SidebarWidget from "./SidebarWidget";
+import type { Module } from "@/types";
 
 type NavItem = {
   name: string;
   icon: React.ReactNode;
   path?: string;
   new?: boolean;
+  module?: Module; // ADR 0003: ítem visible solo si el usuario tiene este módulo
+  adminOnly?: boolean;
   subItems?: { name: string; path: string; pro?: boolean; new?: boolean }[];
 };
 
@@ -34,6 +37,7 @@ const navItems: NavItem[] = [
   {
     icon: <UserCircleIcon />,
     name: "Clínica",
+    module: "residents",
     subItems: [
       { name: "Residentes", path: "/residents" },
     ],
@@ -41,6 +45,7 @@ const navItems: NavItem[] = [
   {
     icon: <ListIcon />,
     name: "Operación",
+    module: "operations",
     subItems: [
       { name: "Pase de medicamentos", path: "/operations/medications" },
       { name: "Asistencia", path: "/operations/attendance" },
@@ -51,6 +56,7 @@ const navItems: NavItem[] = [
   {
     icon: <TableIcon />,
     name: "Finanzas",
+    module: "finance",
     subItems: [
       { name: "Resumen y morosidad", path: "/finance" },
     ],
@@ -58,14 +64,17 @@ const navItems: NavItem[] = [
   {
     icon: <PieChartIcon />,
     name: "Reportes",
+    module: "reports",
     path: "/reports",
   },
   {
     icon: <TaskIcon />,
     name: "Administración",
+    adminOnly: true,
     subItems: [
       { name: "Usuarios", path: "/admin/users" },
       { name: "Profesionales", path: "/admin/professionals" },
+      { name: "Medicamentos", path: "/admin/medications" },
     ],
   },
   {
@@ -81,11 +90,11 @@ const AppSidebar: React.FC = () => {
   const pathname = usePathname();
   const { user } = useAuth();
   const isAdmin = user?.role === "admin";
+  const modules = user?.modules ?? [];
 
-  const isFinanceUser = isAdmin || user?.role === "receptionist";
   const visibleNavItems = navItems.filter((item) => {
-    if (item.name === "Administración") return isAdmin;
-    if (item.name === "Finanzas") return isFinanceUser;
+    if (item.adminOnly) return isAdmin;
+    if (item.module) return isAdmin || modules.includes(item.module);
     return true;
   });
 

@@ -6,9 +6,9 @@
 
 ## ¿Quién puede ver las finanzas?
 
-El módulo de finanzas está disponible únicamente para los roles de **Administrador** y **Recepcionista**. Si tiene uno de estos roles, verá la opción **Finanzas** en el menú lateral.
+El módulo de Finanzas requiere que el Administrador le haya habilitado ese módulo específico a su usuario (ver Capítulo 11). Típicamente lo tienen el Administrador y el personal de Recepción, pero esto se configura persona por persona, no de forma automática por rol. Si tiene el módulo habilitado, verá la opción **Finanzas** en el menú lateral.
 
-> **Nota:** Esta restricción es intencional para proteger la privacidad financiera de los residentes y del Hogar.
+> **Nota:** Esta restricción es intencional para proteger la privacidad financiera de los residentes y del Hogar. Si necesita acceso y no lo tiene, pídaselo al Administrador.
 
 ---
 
@@ -194,7 +194,7 @@ El saldo se calcula automáticamente: **Saldo = Total de cobros − Total de pag
 
 ## En resumen
 
-- El módulo de Finanzas solo está disponible para Administradores y Recepcionistas.
+- El módulo de Finanzas requiere que el Administrador lo habilite en su usuario (típicamente Administradores y Recepcionistas, pero se configura por persona).
 - Seleccione el período (mes y año) para ver los datos de ese mes.
 - Genere los cobros mensuales una sola vez al inicio de cada mes.
 - La tabla de morosidad muestra quiénes tienen saldo pendiente y cuántos días llevan sin pagar.

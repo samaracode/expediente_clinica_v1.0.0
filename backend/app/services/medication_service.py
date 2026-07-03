@@ -40,6 +40,7 @@ from app.schemas.medication import (
     MedicationOrderPatch,
     MedicationOut,
     MedicationOrderOut,
+    MedicationUpdate,
     MedTimeSlotOut,
     PRNRecord,
     PassEntryOut,
@@ -70,6 +71,16 @@ class MedicationCatalogService:
     def create(self, data: MedicationCreate) -> MedicationOut:
         med = Medication(**data.model_dump())
         self.db.add(med)
+        self.db.commit()
+        self.db.refresh(med)
+        return MedicationOut.model_validate(med)
+
+    def update(self, medication_id: int, data: MedicationUpdate) -> MedicationOut:
+        med = self.db.query(Medication).filter(Medication.id == medication_id).first()
+        if not med:
+            raise HTTPException(status_code=404, detail="Medicamento no encontrado")
+        for field, value in data.model_dump(exclude_unset=True).items():
+            setattr(med, field, value)
         self.db.commit()
         self.db.refresh(med)
         return MedicationOut.model_validate(med)

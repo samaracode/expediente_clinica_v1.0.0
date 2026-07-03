@@ -22,10 +22,10 @@ from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
-from app.core.deps import get_current_user
+from app.core.deps import ModuleRequired
 from app.db.session import get_db
 from app.models.attendance import Shift
-from app.models.user import User
+from app.models.user import Module, User
 from app.schemas.handover import (
     AutoSummaryOut,
     ShiftHandoverClose,
@@ -43,6 +43,8 @@ router = APIRouter()
 
 # ─── Router secundario (/shift-tasks) ────────────────────────────────────────
 tasks_router = APIRouter()
+
+_role = ModuleRequired(Module.operations)
 
 
 # ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -75,7 +77,7 @@ def get_or_create_handover(
     target_date: Optional[str] = Query(None, alias="date"),
     shift: Optional[str] = Query(None),
     db: Session = Depends(get_db),
-    _: User = Depends(get_current_user),
+    _: User = Depends(_role),
 ):
     """Obtiene (o crea en estado open) el handover para (date, shift) y devuelve
     el auto-resumen en vivo si está abierto, o el snapshot congelado si está cerrado."""
@@ -86,7 +88,7 @@ def get_or_create_handover(
 def get_auto_summary(
     handover_id: int,
     db: Session = Depends(get_db),
-    _: User = Depends(get_current_user),
+    _: User = Depends(_role),
 ):
     """Recomputa y devuelve el auto-resumen del turno."""
     svc = HandoverService(db)
@@ -100,7 +102,7 @@ def close_handover(
     handover_id: int,
     payload: Optional[ShiftHandoverClose] = None,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(_role),
 ):
     """Cierra el handover: congela el auto_summary, setea closed_by/closed_at, status=closed."""
     notes = payload.notes if payload else None
@@ -111,7 +113,7 @@ def close_handover(
 def receive_handover(
     handover_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(_role),
 ):
     """Marca el handover como recibido. Solo funciona si está 'closed' (si no → 400)."""
     return HandoverService(db).receive(handover_id, current_user.id)
@@ -121,7 +123,7 @@ def receive_handover(
 def list_incidents(
     handover_id: int,
     db: Session = Depends(get_db),
-    _: User = Depends(get_current_user),
+    _: User = Depends(_role),
 ):
     """Lista todos los incidentes de un handover."""
     return HandoverService(db).list_incidents(handover_id)
@@ -132,7 +134,7 @@ def create_incident(
     handover_id: int,
     data: ShiftIncidentCreate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(_role),
 ):
     """Crea un incidente para el handover."""
     return HandoverService(db).create_incident(handover_id, data, current_user.id)
@@ -142,7 +144,7 @@ def create_incident(
 def list_tasks(
     handover_id: int,
     db: Session = Depends(get_db),
-    _: User = Depends(get_current_user),
+    _: User = Depends(_role),
 ):
     """Lista todas las tareas de un handover."""
     return HandoverService(db).list_tasks(handover_id)
@@ -153,7 +155,7 @@ def create_task(
     handover_id: int,
     data: ShiftTaskCreate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(_role),
 ):
     """Crea una tarea para el handover."""
     return HandoverService(db).create_task(handover_id, data, current_user.id)
@@ -164,7 +166,7 @@ def patch_task(
     task_id: int,
     data: ShiftTaskPatch,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(_role),
 ):
     """Edita una tarea. Si is_done=True se setea done_by_user_id=current_user."""
     return HandoverService(db).patch_task(task_id, data, current_user.id)

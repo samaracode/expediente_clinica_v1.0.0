@@ -1,3 +1,4 @@
+from typing import List
 from pydantic import BaseModel, EmailStr
 from app.models.user import UserRole
 
@@ -18,5 +19,11 @@ class UserOut(BaseModel):
     email: str
     role: UserRole
     is_active: bool
+    modules: List[str] = []
 
     model_config = {"from_attributes": True}
+
+
+class PasswordChangeIn(BaseModel):
+    current_password: str
+    new_password: str

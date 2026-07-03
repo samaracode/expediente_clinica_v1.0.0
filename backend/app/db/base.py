@@ -2,7 +2,7 @@ from app.db.base_class import Base  # noqa: F401
 
 # Import all models so Alembic can detect them during autogenerate
 from app.models.file import File  # noqa: F401
-from app.models.user import User, TreatmentArea, Professional  # noqa: F401
+from app.models.user import User, TreatmentArea, Professional, UserModulePermission, Module  # noqa: F401
 from app.models.resident import Resident, FamilyMember, EducationRecord, Relative, PatientRelative  # noqa: F401
 from app.models.admission import Admission, EconomicSituation, HouseholdMember, ConsumptionSnapshot  # noqa: F401
 from app.models.consent import ConsentRecord, PersonalItemsInventory  # noqa: F401

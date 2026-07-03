@@ -62,5 +62,5 @@ Si en algún momento tiene dudas que este manual no resuelve, comuníquese con e
 | [10](10-reportes.md) | Reportes | Consultar reportes de admisiones, consultas y tratamiento |
 | [11](11-administracion-usuarios.md) | Gestión de usuarios | Crear y administrar cuentas del personal |
 | [12](12-administracion-profesionales.md) | Equipo profesional | Registrar al equipo clínico en el sistema |
-| [13](13-mi-perfil.md) | Mi perfil | Ver y actualizar sus datos personales |
+| [13](13-mi-perfil.md) | Mi perfil | Ver sus datos y cambiar su contraseña |
 | [FAQ](99-preguntas-frecuentes.md) | Preguntas frecuentes | Soluciones a los problemas más comunes |

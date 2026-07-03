@@ -15,10 +15,10 @@ from typing import List, Optional
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
-from app.core.deps import get_current_user
+from app.core.deps import ModuleRequired
 from app.db.session import get_db
 from app.models.occupancy import WaitlistStatus
-from app.models.user import User
+from app.models.user import Module, User
 from app.schemas.occupancy import (
     CapacityIn,
     CapacityOut,
@@ -29,6 +29,7 @@ from app.schemas.occupancy import (
 )
 from app.services.occupancy_service import OccupancyService
 
+_role = ModuleRequired(Module.operations)
 
 # ─── Router: /occupancy ──────────────────────────────────────────────────────
 occupancy_router = APIRouter()
@@ -37,7 +38,7 @@ occupancy_router = APIRouter()
 @occupancy_router.get("", response_model=OccupancyOut)
 def get_occupancy(
     db: Session = Depends(get_db),
-    _: User = Depends(get_current_user),
+    _: User = Depends(_role),
 ):
     """Tablero de ocupación: cupos totales, ocupados, disponibles y desglose por status."""
     return OccupancyService(db).get_occupancy()
@@ -51,7 +52,7 @@ waitlist_router = APIRouter()
 def list_waitlist(
     status: Optional[WaitlistStatus] = Query(None, description="Filtrar por status"),
     db: Session = Depends(get_db),
-    _: User = Depends(get_current_user),
+    _: User = Depends(_role),
 ):
     """Lista de espera, opcionalmente filtrada por status."""
     return OccupancyService(db).list_waitlist(status=status)
@@ -61,7 +62,7 @@ def list_waitlist(
 def create_waitlist_entry(
     data: WaitlistEntryCreate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(_role),
 ):
     """Agrega una persona a la lista de espera."""
     return OccupancyService(db).create_waitlist_entry(data, created_by_user_id=current_user.id)
@@ -72,7 +73,7 @@ def patch_waitlist_entry(
     entry_id: int,
     data: WaitlistEntryPatch,
     db: Session = Depends(get_db),
-    _: User = Depends(get_current_user),
+    _: User = Depends(_role),
 ):
     """Edita campos o cambia el status de una entrada de la lista de espera."""
     return OccupancyService(db).patch_waitlist_entry(entry_id, data)
@@ -85,7 +86,7 @@ settings_capacity_router = APIRouter()
 @settings_capacity_router.get("/capacity", response_model=CapacityOut)
 def get_capacity(
     db: Session = Depends(get_db),
-    _: User = Depends(get_current_user),
+    _: User = Depends(_role),
 ):
     """Lee la capacidad configurada del centro (default 24 si no está seteada)."""
     return OccupancyService(db).get_capacity()
@@ -95,7 +96,7 @@ def get_capacity(
 def set_capacity(
     data: CapacityIn,
     db: Session = Depends(get_db),
-    _: User = Depends(get_current_user),
+    _: User = Depends(_role),
 ):
     """Actualiza la capacidad del centro. Debe ser un entero positivo (> 0)."""
     return OccupancyService(db).set_capacity(data)

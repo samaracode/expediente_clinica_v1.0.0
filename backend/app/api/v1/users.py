@@ -3,10 +3,10 @@ from typing import List
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
-from app.core.deps import RoleRequired, get_current_user
+from app.core.deps import RoleRequired
 from app.db.session import get_db
 from app.models.user import User
-from app.schemas.admin import UserAdminOut, UserCreate, UserUpdate
+from app.schemas.admin import PasswordResetIn, UserAdminOut, UserCreate, UserUpdate
 from app.services.user_service import UserService
 
 router = APIRouter()
@@ -43,3 +43,13 @@ def update_user(
     current_admin: User = Depends(_admin_only),
 ):
     return service.update(user_id, data, current_admin)
+
+
+@router.post("/{user_id}/reset-password", response_model=UserAdminOut)
+def reset_password(
+    user_id: int,
+    data: PasswordResetIn,
+    service: UserService = Depends(get_user_service),
+    current_admin: User = Depends(_admin_only),
+):
+    return service.reset_password(user_id, data.new_password, current_admin)

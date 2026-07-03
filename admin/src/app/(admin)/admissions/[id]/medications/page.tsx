@@ -8,7 +8,6 @@ import type {
   MedicationOrderOut,
   MedicationOut,
   MedTimeSlotOut,
-  MedicationCreate,
   MedicationOrderCreate,
   MedicationAdministrationOut,
   FileUploadOut,
@@ -242,14 +241,10 @@ function NewOrderModal({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Campos del medicamento
+  // Campos del medicamento — el catálogo lo gestiona el admin
+  // (Administración → Medicamentos); aquí solo se elige de la lista.
   const [medSearch, setMedSearch] = useState("");
   const [selectedMedId, setSelectedMedId] = useState<number | null>(null);
-  const [createNewMed, setCreateNewMed] = useState(false);
-  const [newMedName, setNewMedName] = useState("");
-  const [newMedForm, setNewMedForm] = useState("");
-  const [newMedStrength, setNewMedStrength] = useState("");
-  const [newMedControlled, setNewMedControlled] = useState(false);
 
   // Campos de la orden
   const [dose, setDose] = useState("");
@@ -281,12 +276,8 @@ function NewOrderModal({
       setError("Dosis y fecha de inicio son obligatorios.");
       return;
     }
-    if (!selectedMedId && !createNewMed) {
-      setError("Seleccioná o creá un medicamento.");
-      return;
-    }
-    if (createNewMed && !newMedName.trim()) {
-      setError("Nombre del medicamento es obligatorio.");
+    if (!selectedMedId) {
+      setError("Seleccioná un medicamento del catálogo.");
       return;
     }
 
@@ -294,23 +285,9 @@ function NewOrderModal({
     setError(null);
 
     try {
-      // 1. Crear medicamento nuevo si se indicó
-      let medicationId = selectedMedId;
-      if (createNewMed) {
-        const newMedPayload: MedicationCreate = {
-          name: newMedName,
-          form: newMedForm || undefined,
-          strength: newMedStrength || undefined,
-          is_controlled: newMedControlled,
-        };
-        const created = await apiFetch<MedicationOut>("/medications", {
-          method: "POST",
-          body: JSON.stringify(newMedPayload),
-        });
-        medicationId = created.id;
-      }
+      const medicationId = selectedMedId;
 
-      // 2. Subir foto de la receta si se adjuntó
+      // 1. Subir foto de la receta si se adjuntó
       let recetaFileId: number | undefined;
       if (recetaFile) {
         const fd = new FormData();
@@ -320,10 +297,10 @@ function NewOrderModal({
         recetaFileId = uploaded.id;
       }
 
-      // 3. Crear la orden
+      // 2. Crear la orden
       const orderPayload: MedicationOrderCreate = {
         admission_id: Number(admissionId),
-        medication_id: medicationId!,
+        medication_id: medicationId,
         dose,
         route,
         schedule_type: scheduleType,
@@ -373,102 +350,49 @@ function NewOrderModal({
             Medicamento <span className="text-error-500">*</span>
           </label>
 
-          {!createNewMed ? (
-            <>
-              <input
-                type="text"
-                placeholder="Buscar en catálogo..."
-                value={medSearch}
-                onChange={(e) => {
-                  setMedSearch(e.target.value);
-                  setSelectedMedId(null);
-                }}
-                className="mb-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 outline-none focus:border-brand-500 dark:border-gray-700 dark:bg-gray-800 dark:text-white"
-              />
-              {medSearch && (
-                <div className="max-h-40 overflow-y-auto rounded-lg border border-gray-200 bg-white shadow dark:border-gray-700 dark:bg-gray-800">
-                  {filteredCatalog.length === 0 ? (
-                    <p className="px-3 py-2 text-sm text-gray-400">Sin resultados</p>
-                  ) : (
-                    filteredCatalog.slice(0, 10).map((m) => (
-                      <button
-                        key={m.id}
-                        type="button"
-                        onClick={() => {
-                          setSelectedMedId(m.id);
-                          setMedSearch(m.name + (m.strength ? ` ${m.strength}` : ""));
-                          setIsControlled(m.is_controlled);
-                        }}
-                        className={`w-full px-3 py-2 text-left text-sm hover:bg-gray-50 dark:hover:bg-gray-700 ${
-                          selectedMedId === m.id
-                            ? "bg-brand-50 dark:bg-brand-500/10"
-                            : ""
-                        }`}
-                      >
-                        {m.name}
-                        {m.strength && (
-                          <span className="ml-1 text-gray-400">{m.strength}</span>
-                        )}
-                        {m.is_controlled && (
-                          <span className="ml-2 text-xs text-error-600">Controlado</span>
-                        )}
-                      </button>
-                    ))
-                  )}
-                </div>
+          <input
+            type="text"
+            placeholder="Buscar en catálogo..."
+            value={medSearch}
+            onChange={(e) => {
+              setMedSearch(e.target.value);
+              setSelectedMedId(null);
+            }}
+            className="mb-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 outline-none focus:border-brand-500 dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+          />
+          {medSearch && (
+            <div className="max-h-40 overflow-y-auto rounded-lg border border-gray-200 bg-white shadow dark:border-gray-700 dark:bg-gray-800">
+              {filteredCatalog.length === 0 ? (
+                <p className="px-3 py-2 text-sm text-gray-400">
+                  Sin resultados. Si el medicamento no existe, pedile al administrador
+                  que lo agregue en Administración → Medicamentos.
+                </p>
+              ) : (
+                filteredCatalog.slice(0, 10).map((m) => (
+                  <button
+                    key={m.id}
+                    type="button"
+                    onClick={() => {
+                      setSelectedMedId(m.id);
+                      setMedSearch(m.name + (m.strength ? ` ${m.strength}` : ""));
+                      setIsControlled(m.is_controlled);
+                    }}
+                    className={`w-full px-3 py-2 text-left text-sm hover:bg-gray-50 dark:hover:bg-gray-700 ${
+                      selectedMedId === m.id
+                        ? "bg-brand-50 dark:bg-brand-500/10"
+                        : ""
+                    }`}
+                  >
+                    {m.name}
+                    {m.strength && (
+                      <span className="ml-1 text-gray-400">{m.strength}</span>
+                    )}
+                    {m.is_controlled && (
+                      <span className="ml-2 text-xs text-error-600">Controlado</span>
+                    )}
+                  </button>
+                ))
               )}
-              <button
-                type="button"
-                onClick={() => setCreateNewMed(true)}
-                className="mt-1 text-xs text-brand-500 hover:underline"
-              >
-                + Crear medicamento nuevo
-              </button>
-            </>
-          ) : (
-            <div className="rounded-lg border border-gray-200 p-3 dark:border-gray-700 space-y-2">
-              <p className="text-xs font-medium text-gray-500">Nuevo medicamento</p>
-              <input
-                type="text"
-                placeholder="Nombre *"
-                value={newMedName}
-                onChange={(e) => setNewMedName(e.target.value)}
-                className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm outline-none focus:border-brand-500 dark:border-gray-700 dark:bg-gray-800 dark:text-white"
-              />
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  placeholder="Forma (tableta, jarabe...)"
-                  value={newMedForm}
-                  onChange={(e) => setNewMedForm(e.target.value)}
-                  className="flex-1 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm outline-none focus:border-brand-500 dark:border-gray-700 dark:bg-gray-800 dark:text-white"
-                />
-                <input
-                  type="text"
-                  placeholder="Concentración (50 mg...)"
-                  value={newMedStrength}
-                  onChange={(e) => setNewMedStrength(e.target.value)}
-                  className="flex-1 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm outline-none focus:border-brand-500 dark:border-gray-700 dark:bg-gray-800 dark:text-white"
-                />
-              </div>
-              <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
-                <input
-                  type="checkbox"
-                  checked={newMedControlled}
-                  onChange={(e) => {
-                    setNewMedControlled(e.target.checked);
-                    setIsControlled(e.target.checked);
-                  }}
-                />
-                Medicamento controlado / psicotrópico
-              </label>
-              <button
-                type="button"
-                onClick={() => setCreateNewMed(false)}
-                className="text-xs text-gray-400 hover:underline"
-              >
-                Cancelar (buscar en catálogo)
-              </button>
             </div>
           )}
         </div>

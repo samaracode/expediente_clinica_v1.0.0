@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import List, Optional
 from pydantic import BaseModel, EmailStr, ConfigDict
 
 
@@ -9,6 +9,7 @@ class UserAdminOut(BaseModel):
     role: str
     is_active: bool
     created_at: Optional[str] = None
+    modules: List[str] = []
     model_config = ConfigDict(from_attributes=False)
 
 
@@ -17,12 +18,18 @@ class UserCreate(BaseModel):
     email: EmailStr
     role: str = "counselor"
     password: str
+    modules: List[str] = []
 
 
 class UserUpdate(BaseModel):
     full_name: Optional[str] = None
     role: Optional[str] = None
     is_active: Optional[bool] = None
+    modules: Optional[List[str]] = None
+
+
+class PasswordResetIn(BaseModel):
+    new_password: str
 
 
 class TreatmentAreaOut(BaseModel):

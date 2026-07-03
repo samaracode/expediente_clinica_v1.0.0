@@ -21,9 +21,9 @@ from fastapi.responses import FileResponse
 from jinja2 import Environment, FileSystemLoader
 from sqlalchemy.orm import Session
 
-from app.core.deps import RoleRequired, get_current_user
+from app.core.deps import ModuleRequired, get_current_user
 from app.db.session import get_db
-from app.models.user import User
+from app.models.user import Module, User
 from app.schemas.finance import (
     AccountOut,
     ChargeCreate,
@@ -104,7 +104,7 @@ def _render_pdf(html: str, bg: BackgroundTasks, filename: str) -> FileResponse:
     bg.add_task(os.unlink, tmp_path)
     return FileResponse(path=tmp_path, media_type="application/pdf", filename=filename)
 
-_finance_required = RoleRequired(["admin", "receptionist"])
+_finance_required = ModuleRequired(Module.finance)
 
 # ──────────────────────────────────────────────────────────────────────────────
 # /admissions/{id}/…
