@@ -4,6 +4,7 @@ import { useSidebar } from "@/context/SidebarContext";
 import AppHeader from "@/layout/AppHeader";
 import AppSidebar from "@/layout/AppSidebar";
 import Backdrop from "@/layout/Backdrop";
+import AssistantWidget from "@/components/assistant/AssistantWidget";
 import React from "react";
 import { usePathname } from "next/navigation";
 
@@ -52,6 +53,8 @@ export default function AdminLayout({
         {/* Page Content */}
         <div className={getRouteSpecificStyles()}>{children}</div>
       </div>
+      {/* Asistente "Ask AI" — flotante, disponible en todas las páginas admin */}
+      <AssistantWidget />
     </div>
   );
 }

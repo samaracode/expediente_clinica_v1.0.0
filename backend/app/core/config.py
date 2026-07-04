@@ -54,6 +54,21 @@ class Settings(BaseSettings):
     # Para Cloudflare R2: https://<account_id>.r2.cloudflarestorage.com
     S3_ENDPOINT_URL: Optional[str] = None
 
+    # ------------------------------------------------------------------ #
+    # Asistente "Ask AI" (consulta de datos por lenguaje natural).
+    # ------------------------------------------------------------------ #
+    # Llave de la API de Anthropic. Si está vacía, el asistente responde
+    # que no está configurado (no rompe el resto del sistema).
+    ANTHROPIC_API_KEY: Optional[str] = None
+    # Modelo por defecto: Haiku 4.5 (barato y rápido para consultas de datos).
+    ASSISTANT_MODEL: str = "claude-haiku-4-5"
+    # Tope de gasto mensual en USD. Al superarlo, el asistente se desactiva
+    # solo y pide contactar al administrador. Se reinicia solo cada mes.
+    ASSISTANT_MONTHLY_BUDGET_USD: float = 10.0
+    # Prompt caching del prefijo estable (system + tools). Activo por defecto
+    # porque la app cambia poco; se puede desactivar para depurar costos.
+    ASSISTANT_PROMPT_CACHE: bool = True
+
     @field_validator("DATABASE_URL", mode="before")
     @classmethod
     def assemble_db_connection(cls, v: Optional[str]) -> str:
