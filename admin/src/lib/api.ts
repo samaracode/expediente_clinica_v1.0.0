@@ -8,6 +8,30 @@ export class ApiError extends Error {
   }
 }
 
+/**
+ * FastAPI devuelve `detail` como string en errores manuales (HTTPException),
+ * pero como una LISTA de objetos {loc, msg, type} en errores de validación
+ * de Pydantic (422). Sin esto, el mensaje termina siendo el array crudo y
+ * React lo renderiza como "[object Object]".
+ */
+function extractErrorMessage(detail: unknown): string {
+  if (typeof detail === "string") return detail;
+  if (Array.isArray(detail)) {
+    return detail
+      .map((e) => {
+        if (e && typeof e === "object" && "msg" in e) {
+          const loc = Array.isArray((e as { loc?: unknown[] }).loc)
+            ? (e as { loc: unknown[] }).loc.filter((p) => p !== "body").join(".")
+            : "";
+          return loc ? `${loc}: ${(e as { msg: string }).msg}` : String((e as { msg: string }).msg);
+        }
+        return typeof e === "string" ? e : JSON.stringify(e);
+      })
+      .join("; ");
+  }
+  return "Error desconocido";
+}
+
 /** Header Authorization con el token de sesión, si existe. */
 function authHeader(): Record<string, string> {
   const token = getToken();
@@ -27,7 +51,7 @@ export async function apiFetch<T>(path: string, options: RequestInit = {}): Prom
 
   if (!res.ok) {
     const body = await res.json().catch(() => ({ detail: res.statusText }));
-    throw new ApiError(res.status, body.detail ?? "Error desconocido");
+    throw new ApiError(res.status, extractErrorMessage(body.detail));
   }
 
   if (res.status === 204) return undefined as T;
@@ -48,7 +72,7 @@ export async function apiFetchMultipart<T>(path: string, formData: FormData): Pr
 
   if (!res.ok) {
     const body = await res.json().catch(() => ({ detail: res.statusText }));
-    throw new ApiError(res.status, body.detail ?? "Error desconocido");
+    throw new ApiError(res.status, extractErrorMessage(body.detail));
   }
 
   return res.json() as Promise<T>;

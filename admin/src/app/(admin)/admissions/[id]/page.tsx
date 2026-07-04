@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { apiFetch } from "@/lib/api";
-import type { AdmissionOut, ResidentOut } from "@/types";
+import type { AdmissionOut, AdmissionStatus, ResidentOut } from "@/types";
 import PageBreadcrumb from "@/components/common/PageBreadCrumb";
 import AdmissionStatusBadge from "@/components/residents/AdmissionStatusBadge";
 import { useAuth } from "@/context/AuthContext";
@@ -44,6 +44,9 @@ export default function AdmissionHubPage() {
   const [loading, setLoading] = useState(true);
   const [confirmArchive, setConfirmArchive] = useState(false);
   const [archiving, setArchiving] = useState(false);
+  const [editingStatus, setEditingStatus] = useState(false);
+  const [pendingStatus, setPendingStatus] = useState<AdmissionStatus | null>(null);
+  const [savingStatus, setSavingStatus] = useState(false);
   const { hasAccess, user } = useAuth();
 
   async function handleArchive() {
@@ -53,6 +56,22 @@ export default function AdmissionHubPage() {
       router.push(resident ? `/residents/${resident.id}` : "/residents");
     } finally {
       setArchiving(false);
+    }
+  }
+
+  async function handleConfirmStatusChange() {
+    if (!pendingStatus) return;
+    setSavingStatus(true);
+    try {
+      const updated = await apiFetch<AdmissionOut>(`/admissions/${id}/status`, {
+        method: "PUT",
+        body: JSON.stringify({ status: pendingStatus }),
+      });
+      setAdmission(updated);
+      setEditingStatus(false);
+      setPendingStatus(null);
+    } finally {
+      setSavingStatus(false);
     }
   }
 
@@ -88,7 +107,44 @@ export default function AdmissionHubPage() {
             )}
           </div>
           <div className="flex items-center gap-2 flex-wrap">
-            <AdmissionStatusBadge status={admission.status} />
+            {!editingStatus ? (
+              <button
+                onClick={() => { setPendingStatus(admission.status); setEditingStatus(true); }}
+                className="rounded-full transition-opacity hover:opacity-80"
+                title="Cambiar estado de la admisión"
+              >
+                <AdmissionStatusBadge status={admission.status} />
+              </button>
+            ) : (
+              <span className="flex items-center gap-1.5">
+                <select
+                  value={pendingStatus ?? admission.status}
+                  onChange={(e) => setPendingStatus(e.target.value as AdmissionStatus)}
+                  disabled={savingStatus}
+                  className="rounded-lg border border-gray-300 bg-white px-2 py-1 text-xs text-gray-700 focus:border-brand-500 dark:border-gray-700 dark:bg-gray-900 dark:text-white"
+                >
+                  {(Object.entries(STATUS_LABELS) as [AdmissionStatus, string][]).map(([v, l]) => (
+                    <option key={v} value={v}>{l}</option>
+                  ))}
+                </select>
+                {pendingStatus !== admission.status ? (
+                  <button
+                    onClick={handleConfirmStatusChange}
+                    disabled={savingStatus}
+                    className="rounded px-2 py-1 text-xs font-medium bg-brand-500 text-white hover:bg-brand-600 disabled:opacity-50"
+                  >
+                    {savingStatus ? "Guardando..." : "Confirmar"}
+                  </button>
+                ) : null}
+                <button
+                  onClick={() => { setEditingStatus(false); setPendingStatus(null); }}
+                  disabled={savingStatus}
+                  className="rounded px-2 py-1 text-xs font-medium border border-gray-300 text-gray-600 hover:bg-gray-50"
+                >
+                  Cancelar
+                </button>
+              </span>
+            )}
             <button
               onClick={() => window.open(`/api/v1/admissions/${id}/export/pdf`, "_blank")}
               className="rounded px-3 py-1.5 text-xs font-medium border border-gray-300 text-gray-600 hover:bg-gray-50 flex items-center gap-1"

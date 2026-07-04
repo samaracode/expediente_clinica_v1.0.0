@@ -535,7 +535,6 @@ class TestAllergies:
     def test_create_and_list(self, db, make_resident):
         resident = make_resident()
         data = ResidentAllergyCreate(
-            resident_id=resident.id,
             substance="Penicilina",
             reaction="Urticaria",
             severity="severe",
@@ -554,14 +553,14 @@ class TestAllergies:
         assert exc.value.status_code == 404
 
     def test_create_resident_not_found(self, db):
-        data = ResidentAllergyCreate(resident_id=9999, substance="Algo")
+        data = ResidentAllergyCreate(substance="Algo")
         with pytest.raises(HTTPException) as exc:
             ResidentAllergyService(db).create(9999, data)
         assert exc.value.status_code == 404
 
     def test_delete(self, db, make_resident):
         resident = make_resident()
-        data = ResidentAllergyCreate(resident_id=resident.id, substance="Látex")
+        data = ResidentAllergyCreate(substance="Látex")
         created = ResidentAllergyService(db).create(resident.id, data)
 
         ResidentAllergyService(db).delete(resident.id, created.id)
@@ -578,7 +577,7 @@ class TestAllergies:
     def test_delete_wrong_resident(self, db, make_resident):
         r1 = make_resident()
         r2 = make_resident()
-        data = ResidentAllergyCreate(resident_id=r1.id, substance="Polen")
+        data = ResidentAllergyCreate(substance="Polen")
         created = ResidentAllergyService(db).create(r1.id, data)
         with pytest.raises(HTTPException) as exc:
             ResidentAllergyService(db).delete(r2.id, created.id)

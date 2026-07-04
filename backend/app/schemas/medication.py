@@ -233,7 +233,9 @@ class MedTimeSlotOut(BaseModel):
 # ---------------------------------------------------------------------------
 
 class ResidentAllergyCreate(BaseModel):
-    resident_id: int
+    # resident_id NO va aquí: viene del parámetro de ruta
+    # POST /residents/{resident_id}/allergies. El servicio nunca lee un
+    # campo resident_id del body.
     substance: str
     reaction: Optional[str] = None
     severity: Optional[AllergySeverity] = None
