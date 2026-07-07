@@ -52,7 +52,13 @@ export default function AssistantWidget() {
     try {
       const res = await askAssistant([...history, outgoing]);
       if (res.disabled) {
-        setLocked(true);
+        // "provider_error" es transitorio (rate limit, sin saldo momentáneo,
+        // etc.): el usuario puede reintentar, así que NO se bloquea el input.
+        // "budget_exceeded" y "not_configured" requieren intervención del
+        // administrador, así que sí se bloquea hasta recargar la página.
+        if (res.reason !== "provider_error") {
+          setLocked(true);
+        }
         setMessages((prev) => [
           ...prev,
           { role: "assistant", content: res.reply, system: true },

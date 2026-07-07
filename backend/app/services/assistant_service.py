@@ -6,17 +6,25 @@ decide qué herramienta llamar; el backend la ejecuta **con el usuario actual**,
 por lo que los permisos por módulo (ADR 0003) se aplican igual que en la UI. El
 asistente es de **solo lectura**: nunca modifica datos.
 
+Multi-proveedor: el LLM que responde puede ser Anthropic (Claude) o DeepSeek,
+elegido con la variable de entorno ASSISTANT_PROVIDER. Este servicio solo habla
+con la interfaz común `LLMProvider` (ver `llm_providers.py`); no conoce el
+formato nativo de cada API — así el loop de tool-use, las tools, los permisos,
+el presupuesto y la auditoría son un único código compartido entre proveedores.
+
 Controles:
 - Tope de gasto mensual (ASSISTANT_MONTHLY_BUDGET_USD): se contabiliza el costo
   real de cada llamada al modelo a partir de `usage`; al superar el tope el
   asistente se desactiva y pide contactar al administrador.
 - Prompt caching (ASSISTANT_PROMPT_CACHE): cachea el prefijo estable (system +
-  tools) para abaratar cada pregunta.
+  tools) para abaratar cada pregunta. Aplica al proveedor Anthropic; DeepSeek
+  cachea automáticamente en su propio backend sin necesidad de este flag.
 """
 
+import logging
 from datetime import date
 from decimal import Decimal
-from typing import Any, Optional
+from typing import Optional
 
 from sqlalchemy.orm import Session
 
@@ -25,25 +33,45 @@ from app.models.admission import Admission, AdmissionStatus
 from app.models.assistant import AssistantUsage
 from app.models.audit import AuditLog, OperationType
 from app.models.user import Module, User
+from app.services.llm_providers import ToolCall, build_provider
 
 # Servicios existentes que reutilizamos como fuente de datos.
 from app.services.finance_service import FinanceService
 from app.services.occupancy_service import OccupancyService
 from app.services.resident_service import ResidentService
 
-# --------------------------------------------------------------------------- #
-# Precios (USD por millón de tokens) — Claude Haiku 4.5.
-# Si se cambia ASSISTANT_MODEL a otro modelo, ajustar esta tabla.
-# --------------------------------------------------------------------------- #
-_PRICES_PER_MTOK = {
-    "claude-haiku-4-5": {"input": 1.00, "output": 5.00},
-    "claude-opus-4-8": {"input": 5.00, "output": 25.00},
-}
-# Factores de prompt caching sobre el precio de entrada.
-_CACHE_WRITE_FACTOR = 1.25  # escritura de caché
-_CACHE_READ_FACTOR = 0.10   # lectura de caché
+logger = logging.getLogger(__name__)
 
 _MAX_TOOL_ITERATIONS = 5
+
+
+def _provider_api_errors() -> tuple:
+    """Clases de excepción de error de API de los SDKs instalados.
+
+    Import perezoso: cada SDK solo se importa si ya está instalado (uno de los
+    dos puede faltar si solo se usa un proveedor).
+    """
+    errors = []
+    try:
+        import anthropic
+
+        errors.append(anthropic.APIError)
+    except ImportError:
+        pass
+    try:
+        import openai
+
+        errors.append(openai.APIError)
+    except ImportError:
+        pass
+    return tuple(errors) or (Exception,)
+
+
+_PROVIDER_API_ERRORS = _provider_api_errors()
+
+
+def _provider_label() -> str:
+    return "DeepSeek" if settings.ASSISTANT_PROVIDER == "deepseek" else "Anthropic"
 
 # Estados de admisión que cuentan como "activa" (residente internado ahora).
 # Misma definición que el módulo de ocupación.
@@ -62,34 +90,8 @@ def _current_period() -> str:
     return date.today().strftime("%Y-%m")
 
 
-def cost_usd_from_usage(usage: Any, model: str) -> Decimal:
-    """Calcula el costo en USD de una respuesta a partir de `response.usage`.
-
-    Contempla los cuatro contadores de tokens (entrada normal, salida, escritura
-    y lectura de caché) con sus factores respectivos.
-    """
-    price = _PRICES_PER_MTOK.get(model, _PRICES_PER_MTOK["claude-haiku-4-5"])
-    input_price = Decimal(str(price["input"]))
-    output_price = Decimal(str(price["output"]))
-
-    def _g(name: str) -> Decimal:
-        return Decimal(str(getattr(usage, name, 0) or 0))
-
-    input_tokens = _g("input_tokens")
-    output_tokens = _g("output_tokens")
-    cache_write = _g("cache_creation_input_tokens")
-    cache_read = _g("cache_read_input_tokens")
-
-    per_tok_in = input_price / Decimal(1_000_000)
-    per_tok_out = output_price / Decimal(1_000_000)
-
-    cost = (
-        input_tokens * per_tok_in
-        + output_tokens * per_tok_out
-        + cache_write * per_tok_in * Decimal(str(_CACHE_WRITE_FACTOR))
-        + cache_read * per_tok_in * Decimal(str(_CACHE_READ_FACTOR))
-    )
-    return cost
+# El cálculo de costo por proveedor/modelo vive en llm_providers.py — cada
+# ProviderTurn ya trae su cost_usd calculado con la tabla de precios correcta.
 
 
 def get_month_spend(db: Session) -> Decimal:
@@ -447,21 +449,16 @@ class AssistantService:
     def __init__(self, db: Session, user: User):
         self.db = db
         self.user = user
-        self.model = settings.ASSISTANT_MODEL
 
-    def _system_blocks(self) -> Any:
-        """System prompt como lista de bloques; con caché marca el prefijo."""
-        block: dict = {"type": "text", "text": _SYSTEM_PROMPT}
-        if settings.ASSISTANT_PROMPT_CACHE:
-            block["cache_control"] = {"type": "ephemeral"}
-        return [block]
-
-    def _tools(self) -> list:
-        """Definición de tools; con caché marca el último bloque de tools."""
-        tools = [dict(t) for t in TOOLS]
-        if settings.ASSISTANT_PROMPT_CACHE and tools:
-            tools[-1] = {**tools[-1], "cache_control": {"type": "ephemeral"}}
-        return tools
+    def _not_configured_reply(self) -> dict:
+        return {
+            "disabled": True,
+            "reason": "not_configured",
+            "reply": (
+                f"El asistente no está configurado (falta la API key de {_provider_label()}). "
+                "Contacta al administrador."
+            ),
+        }
 
     def chat(self, messages: list[dict]) -> dict:
         """Ejecuta el loop de tool-use y devuelve la respuesta del asistente.
@@ -469,13 +466,21 @@ class AssistantService:
         Devuelve un dict:
           { "reply": str, "cost_usd": float }
         o, si no está configurado / presupuesto agotado, un estado explícito.
+
+        El proveedor (Anthropic o DeepSeek) se resuelve según ASSISTANT_PROVIDER;
+        el resto de esta función es idéntico sin importar cuál sea.
         """
-        if not settings.ANTHROPIC_API_KEY:
-            return {
-                "disabled": True,
-                "reason": "not_configured",
-                "reply": "El asistente no está configurado. Contacta al administrador.",
-            }
+        provider = build_provider(
+            settings.ASSISTANT_PROVIDER,
+            anthropic_api_key=settings.ANTHROPIC_API_KEY,
+            anthropic_model=settings.ASSISTANT_MODEL_ANTHROPIC,
+            prompt_cache=settings.ASSISTANT_PROMPT_CACHE,
+            deepseek_api_key=settings.DEEPSEEK_API_KEY,
+            deepseek_model=settings.ASSISTANT_MODEL_DEEPSEEK,
+            deepseek_base_url=settings.DEEPSEEK_BASE_URL,
+        )
+        if provider is None:
+            return self._not_configured_reply()
 
         if is_budget_exceeded(self.db):
             return {
@@ -487,51 +492,49 @@ class AssistantService:
                 ),
             }
 
-        # Import perezoso: no romper el arranque si falta la dependencia.
-        import anthropic
-
-        client = anthropic.Anthropic(api_key=settings.ANTHROPIC_API_KEY)
         executor = _ToolExecutor(self.db, self.user)
 
-        convo = list(messages)
+        # Historial neutro: turnos de usuario tal cual llegan del frontend.
+        history: list[dict] = [{"role": m["role"], "content": m["content"]} for m in messages]
         total_cost = Decimal(0)
         tools_called: list[str] = []
         reply_text = ""
 
-        for _ in range(_MAX_TOOL_ITERATIONS):
-            response = client.messages.create(
-                model=self.model,
-                max_tokens=1024,
-                system=self._system_blocks(),
-                tools=self._tools(),
-                messages=convo,
-            )
-            total_cost += cost_usd_from_usage(response.usage, self.model)
+        try:
+            for _ in range(_MAX_TOOL_ITERATIONS):
+                turn = provider.run_turn(_SYSTEM_PROMPT, TOOLS, history)
+                total_cost += turn.cost_usd
 
-            if response.stop_reason == "tool_use":
-                convo.append({"role": "assistant", "content": response.content})
-                tool_results = []
-                for block in response.content:
-                    if block.type == "tool_use":
-                        tools_called.append(block.name)
-                        result = executor.run(block.name, block.input or {})
-                        import json
+                if turn.tool_calls:
+                    history.append({"role": "assistant", "raw": turn.raw_assistant_message})
+                    calls_and_results: list[tuple[ToolCall, dict]] = []
+                    for call in turn.tool_calls:
+                        tools_called.append(call.name)
+                        result = executor.run(call.name, call.input)
+                        calls_and_results.append((call, result))
+                    history.append(provider.format_tool_results(calls_and_results))
+                    continue
 
-                        tool_results.append(
-                            {
-                                "type": "tool_result",
-                                "tool_use_id": block.id,
-                                "content": json.dumps(result, ensure_ascii=False),
-                            }
-                        )
-                convo.append({"role": "user", "content": tool_results})
-                continue
-
-            # end_turn (o cualquier otro): recoger el texto y salir.
-            reply_text = "".join(
-                b.text for b in response.content if getattr(b, "type", None) == "text"
-            )
-            break
+                reply_text = turn.text
+                break
+        except _PROVIDER_API_ERRORS as e:
+            # Error de la API del proveedor (saldo insuficiente, rate limit,
+            # clave inválida, etc.). El detalle técnico va a los logs; al
+            # usuario se le da un mensaje simple. Se cobra solo lo ya gastado
+            # hasta el error (total_cost puede incluir vueltas previas del
+            # loop) y no se bloquea el asistente completo: puede reintentar.
+            logger.warning("Error del proveedor %s en assistant chat: %s", _provider_label(), e)
+            if total_cost > 0:
+                _add_spend(self.db, total_cost)
+            return {
+                "disabled": True,
+                "reason": "provider_error",
+                "reply": (
+                    f"El asistente ({_provider_label()}) no pudo responder en este "
+                    "momento. Intenta de nuevo en unos minutos o contacta al "
+                    "administrador si el problema persiste."
+                ),
+            }
 
         # Contabilizar gasto y auditar (misma transacción de auditoría).
         _add_spend(self.db, total_cost)

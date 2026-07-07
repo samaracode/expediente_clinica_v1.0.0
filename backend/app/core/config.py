@@ -57,17 +57,41 @@ class Settings(BaseSettings):
     # ------------------------------------------------------------------ #
     # Asistente "Ask AI" (consulta de datos por lenguaje natural).
     # ------------------------------------------------------------------ #
-    # Llave de la API de Anthropic. Si está vacía, el asistente responde
-    # que no está configurado (no rompe el resto del sistema).
+    # Proveedor del modelo: "anthropic" (Claude) o "deepseek". Permite probar
+    # otro proveedor sin tocar código, solo cambiando esta variable.
+    ASSISTANT_PROVIDER: str = "anthropic"
+
+    # -- Anthropic (Claude) -- #
+    # Llave de la API de Anthropic. Si está vacía y el proveedor es "anthropic",
+    # el asistente responde que no está configurado (no rompe el resto del sistema).
     ANTHROPIC_API_KEY: Optional[str] = None
     # Modelo por defecto: Haiku 4.5 (barato y rápido para consultas de datos).
-    ASSISTANT_MODEL: str = "claude-haiku-4-5"
-    # Tope de gasto mensual en USD. Al superarlo, el asistente se desactiva
-    # solo y pide contactar al administrador. Se reinicia solo cada mes.
+    ASSISTANT_MODEL_ANTHROPIC: str = "claude-haiku-4-5"
+
+    # -- DeepSeek -- #
+    # Llave de la API de DeepSeek (https://platform.deepseek.com). DeepSeek
+    # expone una API compatible con el formato de OpenAI.
+    DEEPSEEK_API_KEY: Optional[str] = None
+    DEEPSEEK_BASE_URL: str = "https://api.deepseek.com"
+    # "deepseek-chat" (modelo general) o "deepseek-reasoner" (con razonamiento).
+    ASSISTANT_MODEL_DEEPSEEK: str = "deepseek-chat"
+
+    # Tope de gasto mensual en USD (aplica al proveedor activo). Al superarlo,
+    # el asistente se desactiva solo y pide contactar al administrador.
+    # Se reinicia solo cada mes.
     ASSISTANT_MONTHLY_BUDGET_USD: float = 10.0
     # Prompt caching del prefijo estable (system + tools). Activo por defecto
     # porque la app cambia poco; se puede desactivar para depurar costos.
+    # Nota: hoy solo tiene efecto con el proveedor Anthropic (prompt caching
+    # nativo de Claude); DeepSeek cachea automáticamente en su propio backend.
     ASSISTANT_PROMPT_CACHE: bool = True
+
+    @property
+    def assistant_model(self) -> str:
+        """Modelo efectivo según el proveedor activo."""
+        if self.ASSISTANT_PROVIDER == "deepseek":
+            return self.ASSISTANT_MODEL_DEEPSEEK
+        return self.ASSISTANT_MODEL_ANTHROPIC
 
     @field_validator("DATABASE_URL", mode="before")
     @classmethod
