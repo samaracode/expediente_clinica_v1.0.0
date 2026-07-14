@@ -72,6 +72,8 @@ export interface AssistantChatResponse {
   /** "budget_exceeded" | "not_configured" | undefined */
   reason?: string;
   cost_usd?: number | null;
+  /** Nombre del modelo que procesó la consulta (p.ej. "Gemini 2.0 Flash"). */
+  model?: string | null;
 }
 
 /** Envía el historial de la conversación al asistente y devuelve su respuesta. */
