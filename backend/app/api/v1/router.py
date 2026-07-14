@@ -84,6 +84,10 @@ api_router.include_router(handover.tasks_router, prefix="/shift-tasks", tags=["H
 from app.api.v1 import dashboard
 api_router.include_router(dashboard.router, prefix="/dashboard", tags=["Dashboard"])
 
+# Asistente "Ask AI" — consulta de datos por lenguaje natural
+from app.api.v1 import assistant
+api_router.include_router(assistant.router, prefix="/assistant", tags=["Assistant"])
+
 # Módulo de Control Financiero — Fase 5
 from app.api.v1.finance import (
     admissions_finance_router,

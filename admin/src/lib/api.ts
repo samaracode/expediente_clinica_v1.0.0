@@ -58,6 +58,32 @@ export async function apiFetch<T>(path: string, options: RequestInit = {}): Prom
   return res.json() as Promise<T>;
 }
 
+// ── Asistente "Ask AI" ───────────────────────────────────────────────────────
+
+export interface AssistantMessage {
+  role: "user" | "assistant";
+  content: string;
+}
+
+export interface AssistantChatResponse {
+  reply: string;
+  /** true cuando el asistente está desactivado (no configurado o tope de gasto). */
+  disabled?: boolean;
+  /** "budget_exceeded" | "not_configured" | undefined */
+  reason?: string;
+  cost_usd?: number | null;
+}
+
+/** Envía el historial de la conversación al asistente y devuelve su respuesta. */
+export async function askAssistant(
+  messages: AssistantMessage[]
+): Promise<AssistantChatResponse> {
+  return apiFetch<AssistantChatResponse>("/assistant/chat", {
+    method: "POST",
+    body: JSON.stringify({ messages }),
+  });
+}
+
 /**
  * Variante de apiFetch para subir archivos (multipart/form-data).
  * No establece Content-Type para que el navegador lo agregue con el boundary.

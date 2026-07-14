@@ -14,3 +14,10 @@ pytest==8.2.1
 ruff==0.4.7
 pdfkit>=1.0.0
 jinja2>=3.1.0
+anthropic>=0.40.0
+# DeepSeek y Groq exponen una API compatible con el formato de OpenAI; se usa
+# el SDK oficial de OpenAI apuntando a la base_url de cada uno (ver ASSISTANT_PROVIDER).
+openai>=1.50.0
+# Gemini (Google AI Studio) — free tier. SDK oficial y vigente de Google
+# (google-generativeai está deprecado, no usar ese).
+google-genai>=1.0.0

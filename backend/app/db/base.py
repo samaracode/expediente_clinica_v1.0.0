@@ -22,3 +22,4 @@ from app.models.attendance import AttendanceRollCall, AttendanceEntry  # noqa: F
 from app.models.occupancy import ClinicSetting, WaitlistEntry  # noqa: F401
 from app.models.handover import ShiftHandover, ShiftIncident, ShiftTask  # noqa: F401
 from app.models.finance import PaymentAgreement, Charge, Payment  # noqa: F401
+from app.models.assistant import AssistantUsage  # noqa: F401
