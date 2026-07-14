@@ -1,11 +1,11 @@
 """Capa de abstracción de proveedores de LLM para el asistente "Ask AI".
 
-Problema que resuelve: Anthropic (Claude) y DeepSeek exponen tool-use con
-formatos de request/response DISTINTOS (bloques de contenido tipados vs.
-`tool_calls` estilo OpenAI). Para poder elegir el proveedor con una variable de
-entorno sin duplicar el loop de tool-use, las tools, los permisos y el cálculo
-de costo, cada proveedor traduce su formato nativo a un contrato común
-(`ProviderTurn` / `ToolCall`) y `AssistantService` solo habla ese contrato.
+Problema que resuelve: Anthropic (Claude), DeepSeek, Gemini y Groq exponen tool-use
+con formatos de request/response DISTINTOS entre sí. Para poder elegir el
+proveedor con una variable de entorno sin duplicar el loop de tool-use, las
+tools, los permisos y el cálculo de costo, cada proveedor traduce su formato
+nativo a un contrato común (`ProviderTurn` / `ToolCall`) y `AssistantService`
+solo habla ese contrato.
 
 Cada proveedor usa el SDK OFICIAL de su API:
   - Anthropic → paquete `anthropic`.
@@ -13,6 +13,13 @@ Cada proveedor usa el SDK OFICIAL de su API:
     expone una API compatible con el formato de OpenAI; así lo documenta el
     propio proveedor. No es un shim genérico: es el SDK real de la API real
     que DeepSeek decidió exponer).
+  - Gemini    → paquete `google-genai` (SDK oficial y vigente de Google; el
+    paquete `google-generativeai` está deprecado). Tiene un free tier con
+    límites de requests por minuto/día — ver GeminiProvider más abajo.
+  - Groq      → paquete `openai` apuntando a la base_url de Groq (misma
+    razón que DeepSeek: Groq expone una API compatible con OpenAI). Sirve
+    modelos open-weight (Llama, etc.) sobre hardware LPU propio; tiene un
+    free tier con límites de requests por minuto/día, igual que Gemini.
 """
 
 from dataclasses import dataclass, field
@@ -146,15 +153,17 @@ class AnthropicProvider:
 
 
 # --------------------------------------------------------------------------- #
-# DeepSeek (API compatible con el formato de OpenAI)
+# DeepSeek / Groq (ambos exponen una API compatible con el formato de OpenAI;
+# una sola clase les sirve a los dos, solo cambia base_url + tabla de precios)
 # --------------------------------------------------------------------------- #
 
 class DeepSeekProvider:
-    def __init__(self, api_key: str, model: str, base_url: str):
+    def __init__(self, api_key: str, model: str, base_url: str, provider_name: str = "deepseek"):
         import openai  # import perezoso
 
         self._client = openai.OpenAI(api_key=api_key, base_url=base_url)
         self._model = model
+        self._provider_name = provider_name
 
     def _tools_openai_format(self, tools: list[dict]) -> list[dict]:
         # Anthropic: {"name", "description", "input_schema"}
@@ -192,7 +201,7 @@ class DeepSeekProvider:
         usage = response.usage
 
         cost = _cost_from_generic_usage(
-            provider="deepseek",
+            provider=self._provider_name,
             model=self._model,
             input_tokens=getattr(usage, "prompt_tokens", 0),
             output_tokens=getattr(usage, "completion_tokens", 0),
@@ -234,6 +243,103 @@ class DeepSeekProvider:
 
 
 # --------------------------------------------------------------------------- #
+# Gemini (Google AI Studio) — free tier
+# --------------------------------------------------------------------------- #
+
+class GeminiProvider:
+    """Usa el modelo gratuito de Gemini (Google AI Studio). Costo $0 dentro del
+    free tier; si se excede el límite de requests, la API devuelve un 429 que
+    `AssistantService` ya sabe traducir a un mensaje de "intenta más tarde"
+    (mismo manejo que un error de cualquier otro proveedor)."""
+
+    def __init__(self, api_key: str, model: str):
+        from google import genai  # import perezoso
+
+        self._client = genai.Client(api_key=api_key)
+        self._model = model
+
+    def _tools_gemini_format(self, tools: list[dict]) -> list:
+        from google.genai import types
+
+        # `parameters_json_schema` acepta JSON Schema plano tal cual —
+        # exactamente el formato en que ya están definidas TOOLS.
+        declarations = [
+            types.FunctionDeclaration(
+                name=t["name"],
+                description=t["description"],
+                parameters_json_schema=t["input_schema"],
+            )
+            for t in tools
+        ]
+        return [types.Tool(function_declarations=declarations)]
+
+    def run_turn(self, system: str, tools: list[dict], history: list[dict]) -> ProviderTurn:
+        from google.genai import types
+
+        contents = []
+        for turn in history:
+            if turn["role"] == "user" and "content" in turn:
+                contents.append(types.Content(role="user", parts=[types.Part(text=turn["content"])]))
+            elif turn["role"] == "assistant" and "content" in turn:
+                contents.append(types.Content(role="model", parts=[types.Part(text=turn["content"])]))
+            elif turn["role"] == "assistant" and "raw" in turn:
+                contents.append(turn["raw"])  # Content completo devuelto por Gemini (con function_call)
+            elif turn["role"] == "tool_results":
+                contents.append(turn["raw"])  # Content(role="user", parts=[function_response, ...])
+
+        response = self._client.models.generate_content(
+            model=self._model,
+            contents=contents,
+            config=types.GenerateContentConfig(
+                system_instruction=system,
+                tools=self._tools_gemini_format(tools),
+            ),
+        )
+
+        usage = response.usage_metadata
+        cost = _cost_from_generic_usage(
+            provider="gemini",
+            model=self._model,
+            input_tokens=getattr(usage, "prompt_token_count", 0) or 0,
+            output_tokens=getattr(usage, "candidates_token_count", 0) or 0,
+            cache_write_tokens=0,
+            cache_read_tokens=getattr(usage, "cached_content_token_count", 0) or 0,
+        )
+
+        function_calls = response.function_calls or []
+        tool_calls = [
+            ToolCall(id=fc.id or fc.name, name=fc.name, input=fc.args or {})
+            for fc in function_calls
+        ]
+
+        # raw_assistant_message es el Content completo del primer candidato,
+        # para poder re-inyectarlo tal cual (con sus function_call parts) en
+        # la siguiente vuelta del loop.
+        raw_content = response.candidates[0].content if response.candidates else None
+
+        return ProviderTurn(
+            text=response.text or "",
+            tool_calls=tool_calls,
+            cost_usd=cost,
+            raw_assistant_message=raw_content,
+            raw_usage=usage.model_dump() if usage and hasattr(usage, "model_dump") else None,
+        )
+
+    def format_tool_results(self, calls_and_results: list[tuple[ToolCall, dict]]) -> dict:
+        from google.genai import types
+
+        parts = [
+            types.Part(
+                function_response=types.FunctionResponse(
+                    id=call.id, name=call.name, response=result
+                )
+            )
+            for call, result in calls_and_results
+        ]
+        return {"role": "tool_results", "raw": types.Content(role="user", parts=parts)}
+
+
+# --------------------------------------------------------------------------- #
 # Precios (USD por millón de tokens) por proveedor + modelo.
 # --------------------------------------------------------------------------- #
 
@@ -248,6 +354,22 @@ _PRICES_PER_MTOK = {
         # https://platform.deepseek.com/pricing si cambian.
         "deepseek-chat": {"input": 0.28, "output": 0.42, "cache_read": 0.028},
         "deepseek-reasoner": {"input": 0.28, "output": 0.42, "cache_read": 0.028},
+    },
+    "gemini": {
+        # Free tier de Google AI Studio: $0 por token, limitado por requests
+        # por minuto/día (no por gasto). El tope de gasto mensual del
+        # asistente sigue funcionando, pero con Gemini gratis casi nunca se
+        # alcanzará por costo — el límite real es el rate limit del free tier,
+        # que la API devuelve como 429 (ver GeminiProvider / manejo de error).
+        "gemini-2.0-flash": {"input": 0.0, "output": 0.0},
+        "gemini-2.5-flash": {"input": 0.0, "output": 0.0},
+        "gemini-flash-latest": {"input": 0.0, "output": 0.0},
+    },
+    "groq": {
+        # Free tier de Groq: $0 por token, limitado por requests por
+        # minuto/día (igual que Gemini). Ver GroqProvider / build_provider.
+        "llama-3.3-70b-versatile": {"input": 0.0, "output": 0.0},
+        "llama-3.1-8b-instant": {"input": 0.0, "output": 0.0},
     },
 }
 _ANTHROPIC_CACHE_WRITE_FACTOR = 1.25
@@ -300,12 +422,31 @@ def build_provider(
     deepseek_api_key: Optional[str],
     deepseek_model: str,
     deepseek_base_url: str,
+    gemini_api_key: Optional[str] = None,
+    gemini_model: str = "gemini-2.0-flash",
+    groq_api_key: Optional[str] = None,
+    groq_model: str = "llama-3.3-70b-versatile",
+    groq_base_url: str = "https://api.groq.com/openai/v1",
 ) -> Optional[LLMProvider]:
     """Construye el proveedor configurado, o None si falta su API key."""
     if provider_name == "deepseek":
         if not deepseek_api_key:
             return None
         return DeepSeekProvider(api_key=deepseek_api_key, model=deepseek_model, base_url=deepseek_base_url)
+
+    if provider_name == "gemini":
+        if not gemini_api_key:
+            return None
+        return GeminiProvider(api_key=gemini_api_key, model=gemini_model)
+
+    if provider_name == "groq":
+        if not groq_api_key:
+            return None
+        # Groq expone una API compatible con OpenAI, igual que DeepSeek:
+        # se reutiliza la misma clase con otro base_url y tabla de precios.
+        return DeepSeekProvider(
+            api_key=groq_api_key, model=groq_model, base_url=groq_base_url, provider_name="groq"
+        )
 
     # Por defecto / "anthropic"
     if not anthropic_api_key:

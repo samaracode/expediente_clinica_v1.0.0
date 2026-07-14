@@ -57,8 +57,9 @@ class Settings(BaseSettings):
     # ------------------------------------------------------------------ #
     # Asistente "Ask AI" (consulta de datos por lenguaje natural).
     # ------------------------------------------------------------------ #
-    # Proveedor del modelo: "anthropic" (Claude) o "deepseek". Permite probar
-    # otro proveedor sin tocar código, solo cambiando esta variable.
+    # Proveedor del modelo: "anthropic" (Claude), "deepseek", "gemini" o "groq".
+    # Permite probar otro proveedor sin tocar código, solo cambiando esta
+    # variable (y reiniciando el backend).
     ASSISTANT_PROVIDER: str = "anthropic"
 
     # -- Anthropic (Claude) -- #
@@ -76,14 +77,34 @@ class Settings(BaseSettings):
     # "deepseek-chat" (modelo general) o "deepseek-reasoner" (con razonamiento).
     ASSISTANT_MODEL_DEEPSEEK: str = "deepseek-chat"
 
+    # -- Gemini (Google AI Studio) -- #
+    # Llave gratuita: https://aistudio.google.com/apikey (sin tarjeta).
+    # AVISO DE PRIVACIDAD: en el free tier, Google puede usar las peticiones
+    # para mejorar sus modelos. No usar con datos reales de residentes/PHI —
+    # solo para pruebas o para el modo "cómo usar el sistema" (manual).
+    GEMINI_API_KEY: Optional[str] = None
+    ASSISTANT_MODEL_GEMINI: str = "gemini-2.0-flash"
+
+    # -- Groq -- #
+    # Llave gratuita: https://console.groq.com/keys (sin tarjeta). Groq expone
+    # una API compatible con el formato de OpenAI y sirve modelos open-weight
+    # (Llama, etc.) sobre hardware propio (LPU), muy rápido. Free tier con
+    # límites de requests por minuto/día, igual que Gemini.
+    GROQ_API_KEY: Optional[str] = None
+    GROQ_BASE_URL: str = "https://api.groq.com/openai/v1"
+    ASSISTANT_MODEL_GROQ: str = "llama-3.3-70b-versatile"
+
     # Tope de gasto mensual en USD (aplica al proveedor activo). Al superarlo,
     # el asistente se desactiva solo y pide contactar al administrador.
-    # Se reinicia solo cada mes.
+    # Se reinicia solo cada mes. Con Gemini (free tier, costo $0) este tope
+    # prácticamente nunca se alcanza por dinero — el límite real es el rate
+    # limit del free tier, que la API devuelve como error 429.
     ASSISTANT_MONTHLY_BUDGET_USD: float = 10.0
     # Prompt caching del prefijo estable (system + tools). Activo por defecto
     # porque la app cambia poco; se puede desactivar para depurar costos.
     # Nota: hoy solo tiene efecto con el proveedor Anthropic (prompt caching
-    # nativo de Claude); DeepSeek cachea automáticamente en su propio backend.
+    # nativo de Claude); DeepSeek, Gemini y Groq cachean automáticamente en su
+    # propio backend.
     ASSISTANT_PROMPT_CACHE: bool = True
 
     @property
@@ -91,6 +112,10 @@ class Settings(BaseSettings):
         """Modelo efectivo según el proveedor activo."""
         if self.ASSISTANT_PROVIDER == "deepseek":
             return self.ASSISTANT_MODEL_DEEPSEEK
+        if self.ASSISTANT_PROVIDER == "gemini":
+            return self.ASSISTANT_MODEL_GEMINI
+        if self.ASSISTANT_PROVIDER == "groq":
+            return self.ASSISTANT_MODEL_GROQ
         return self.ASSISTANT_MODEL_ANTHROPIC
 
     @field_validator("DATABASE_URL", mode="before")

@@ -29,6 +29,7 @@ export default function AssistantWidget() {
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [locked, setLocked] = useState(false); // presupuesto agotado / no configurado
+  const [model, setModel] = useState<string | null>(null); // nombre del modelo activo
   const endRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -51,6 +52,9 @@ export default function AssistantWidget() {
 
     try {
       const res = await askAssistant([...history, outgoing]);
+      if (res.model) {
+        setModel(res.model);
+      }
       if (res.disabled) {
         // "provider_error" es transitorio (rate limit, sin saldo momentáneo,
         // etc.): el usuario puede reintentar, así que NO se bloquea el input.
@@ -138,7 +142,9 @@ export default function AssistantWidget() {
             <p className="text-sm font-semibold text-gray-800 dark:text-white/90">
               Asistente de ayuda
             </p>
-            <p className="text-xs text-gray-400">Consulta el expediente</p>
+            <p className="text-xs text-gray-400">
+              {model ? `Usando ${model}` : "Consulta el expediente"}
+            </p>
           </div>
         </div>
 

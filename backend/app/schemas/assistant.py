@@ -22,3 +22,5 @@ class AssistantChatResponse(BaseModel):
     reason: Optional[str] = None
     # Costo aproximado de esta pregunta en USD (informativo; None si desactivado).
     cost_usd: Optional[float] = None
+    # Nombre del modelo que procesó la consulta (p.ej. "Gemini 2.0 Flash").
+    model: Optional[str] = None

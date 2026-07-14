@@ -6,8 +6,8 @@ decide qué herramienta llamar; el backend la ejecuta **con el usuario actual**,
 por lo que los permisos por módulo (ADR 0003) se aplican igual que en la UI. El
 asistente es de **solo lectura**: nunca modifica datos.
 
-Multi-proveedor: el LLM que responde puede ser Anthropic (Claude) o DeepSeek,
-elegido con la variable de entorno ASSISTANT_PROVIDER. Este servicio solo habla
+Multi-proveedor: el LLM que responde puede ser Anthropic (Claude), DeepSeek,
+Gemini o Groq, elegido con la variable de entorno ASSISTANT_PROVIDER. Este servicio solo habla
 con la interfaz común `LLMProvider` (ver `llm_providers.py`); no conoce el
 formato nativo de cada API — así el loop de tool-use, las tools, los permisos,
 el presupuesto y la auditoría son un único código compartido entre proveedores.
@@ -48,8 +48,8 @@ _MAX_TOOL_ITERATIONS = 5
 def _provider_api_errors() -> tuple:
     """Clases de excepción de error de API de los SDKs instalados.
 
-    Import perezoso: cada SDK solo se importa si ya está instalado (uno de los
-    dos puede faltar si solo se usa un proveedor).
+    Import perezoso: cada SDK solo se importa si ya está instalado (puede
+    faltar alguno si solo se usa un subconjunto de proveedores).
     """
     errors = []
     try:
@@ -64,14 +64,52 @@ def _provider_api_errors() -> tuple:
         errors.append(openai.APIError)
     except ImportError:
         pass
+    try:
+        from google.genai import errors as genai_errors
+
+        errors.append(genai_errors.APIError)
+    except ImportError:
+        pass
     return tuple(errors) or (Exception,)
 
 
 _PROVIDER_API_ERRORS = _provider_api_errors()
 
 
+_PROVIDER_LABELS = {"deepseek": "DeepSeek", "gemini": "Gemini", "groq": "Groq"}
+
+
 def _provider_label() -> str:
-    return "DeepSeek" if settings.ASSISTANT_PROVIDER == "deepseek" else "Anthropic"
+    return _PROVIDER_LABELS.get(settings.ASSISTANT_PROVIDER, "Anthropic")
+
+
+def _model_label() -> str:
+    """Nombre human-readable del modelo activo para mostrar en la UI."""
+    provider = settings.ASSISTANT_PROVIDER
+    if provider == "gemini":
+        model = settings.ASSISTANT_MODEL_GEMINI
+        if "2.5" in model:
+            return "Gemini 2.5 Flash"
+        if "2.0" in model:
+            return "Gemini 2.0 Flash"
+        return "Gemini Flash"
+    elif provider == "deepseek":
+        model = settings.ASSISTANT_MODEL_DEEPSEEK
+        if "reasoner" in model:
+            return "DeepSeek Reasoner"
+        return "DeepSeek Chat"
+    elif provider == "groq":
+        model = settings.ASSISTANT_MODEL_GROQ
+        if "8b" in model:
+            return "Groq Llama 3.1 8B"
+        return "Groq Llama 3.3 70B"
+    else:  # anthropic
+        model = settings.ASSISTANT_MODEL_ANTHROPIC
+        if "opus" in model:
+            return "Claude Opus 4.8"
+        elif "sonnet" in model:
+            return "Claude Sonnet 5"
+        return "Claude Haiku 4.5"
 
 # Estados de admisión que cuentan como "activa" (residente internado ahora).
 # Misma definición que el módulo de ocupación.
@@ -458,6 +496,7 @@ class AssistantService:
                 f"El asistente no está configurado (falta la API key de {_provider_label()}). "
                 "Contacta al administrador."
             ),
+            "model": _model_label(),
         }
 
     def chat(self, messages: list[dict]) -> dict:
@@ -467,8 +506,9 @@ class AssistantService:
           { "reply": str, "cost_usd": float }
         o, si no está configurado / presupuesto agotado, un estado explícito.
 
-        El proveedor (Anthropic o DeepSeek) se resuelve según ASSISTANT_PROVIDER;
-        el resto de esta función es idéntico sin importar cuál sea.
+        El proveedor (Anthropic, DeepSeek, Gemini o Groq) se resuelve según
+        ASSISTANT_PROVIDER; el resto de esta función es idéntico sin importar
+        cuál sea.
         """
         provider = build_provider(
             settings.ASSISTANT_PROVIDER,
@@ -478,6 +518,11 @@ class AssistantService:
             deepseek_api_key=settings.DEEPSEEK_API_KEY,
             deepseek_model=settings.ASSISTANT_MODEL_DEEPSEEK,
             deepseek_base_url=settings.DEEPSEEK_BASE_URL,
+            gemini_api_key=settings.GEMINI_API_KEY,
+            gemini_model=settings.ASSISTANT_MODEL_GEMINI,
+            groq_api_key=settings.GROQ_API_KEY,
+            groq_model=settings.ASSISTANT_MODEL_GROQ,
+            groq_base_url=settings.GROQ_BASE_URL,
         )
         if provider is None:
             return self._not_configured_reply()
@@ -490,6 +535,7 @@ class AssistantService:
                     "El asistente de ayuda alcanzó su límite de uso de este mes. "
                     "Contacta al administrador para reactivarlo."
                 ),
+                "model": _model_label(),
             }
 
         executor = _ToolExecutor(self.db, self.user)
@@ -534,13 +580,18 @@ class AssistantService:
                     "momento. Intenta de nuevo en unos minutos o contacta al "
                     "administrador si el problema persiste."
                 ),
+                "model": _model_label(),
             }
 
         # Contabilizar gasto y auditar (misma transacción de auditoría).
         _add_spend(self.db, total_cost)
         self._audit(tools_called)
 
-        return {"reply": reply_text or "No obtuve una respuesta.", "cost_usd": float(total_cost)}
+        return {
+            "reply": reply_text or "No obtuve una respuesta.",
+            "cost_usd": float(total_cost),
+            "model": _model_label(),
+        }
 
     def _audit(self, tools_called: list[str]) -> None:
         entry = AuditLog(
